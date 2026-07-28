@@ -134,7 +134,11 @@ function isDrift(member, canonical) {
 let md = `# Drift report\n\nGenerated: \`${new Date().toISOString()}\`  \nSource: Storybook computed styles (${data.storyCount} stories)\n\n`;
 md += `A value is flagged **drift → canonical** when it sits within tolerance of a cluster's canonical value and is either used \u2264 ${cfg.driftMaxUsage}\u00d7 in absolute terms, or used at \u2264 ${Math.round(cfg.driftMaxUsageRatio * 100)}% of the canonical's usage count.\n\n---\n\n`;
 
-const suggested = {};
+// Keyed by group + value, not value alone: now that colors are split by role,
+// the same raw value can legitimately be drift in more than one group (e.g.
+// `rgb(0, 0, 0)` drifting in both text and border). Keying by value alone let
+// the later group silently overwrite the earlier one.
+const suggested = new Map();
 let totalDrift = 0;
 
 for (const g of groups) {
@@ -147,7 +151,8 @@ for (const g of groups) {
     const token = `${g.prefix}-${i}`;
     const drifts = c.members.filter((m) => isDrift(m, c.canonical));
     for (const d of drifts) {
-      suggested[d.value] = { token, canonical: c.canonical.value, group: g.prefix.replace(/^--/, ""), intentional: false };
+      const group = g.prefix.replace(/^--/, "");
+      suggested.set(`${group} ${d.value}`, { value: d.value, token, canonical: c.canonical.value, group, intentional: false });
       const used = d.components.slice(0, 3).join(", ") + (d.components.length > 3 ? "\u2026" : "");
       lines.push(`| \`${token}\` | \`${c.canonical.value}\` (${c.canonical.count}\u00d7) | \`${d.value}\` (${d.count}\u00d7) | ${used} |`);
       totalDrift++;
@@ -165,7 +170,7 @@ md += `---\n\n**${totalDrift} drift values flagged.** Mark intentional one-offs 
 const suggestedOut = {
   generatedAt: new Date().toISOString(),
   driftCount: totalDrift,
-  replacements: Object.entries(suggested).map(([value, info]) => ({ value, ...info })),
+  replacements: [...suggested.values()],
 };
 
 fs.writeFileSync(path.join(OUT, "drift-report.md"), md);
