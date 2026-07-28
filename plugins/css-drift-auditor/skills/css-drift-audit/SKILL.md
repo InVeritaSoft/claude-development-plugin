@@ -56,15 +56,29 @@ dirs, package manager). Read it before continuing.
 2. Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/extract-computed-styles.mjs`
    (needs Playwright: `npm i -D playwright && npx playwright install chromium`).
 3. Output: `design-audit/computed-tokens.json` — every distinct computed value
-   per property, with usage counts and owning components.
+   per property, with usage counts and owning components. Stories that throw
+   during render (detected via page errors and known Storybook error-UI
+   markers) are excluded rather than scraped, and counted separately in
+   `skippedErrors` — a high count there usually means several components need
+   required-prop refinement in their generated story (Phase 1.4).
 
-CHECKPOINT: surface the per-property distinct-value counts before analysis.
+CHECKPOINT: surface the per-property distinct-value counts, plus `skipped` /
+`skippedErrors`, before analysis. A high `skippedErrors` count means the
+drift report is running on a smaller sample than intended — worth fixing the
+underlying stories before trusting the results.
 
 ## Phase 3 — Analyze drift
 Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze-drift.mjs`. Outputs
-`design-audit/drift-report.md` (clusters, canonical per cluster, low-usage
+`design-audit/drift-report.md` (clusters, canonical per cluster, drift
 outliers flagged) and `design-audit/suggested-tokens.json`
-(drift value → canonical → token name).
+(drift value → canonical → token name). Text/background/border colors are
+clustered as separate groups (they're different design roles even when
+RGB-close). A member is flagged as drift when it's within tolerance of its
+cluster's canonical value and either used rarely in absolute terms
+(`driftMaxUsage`) or rarely *relative to the canonical* (`driftMaxUsageRatio`,
+default 15%) — the relative check is what catches systemic drift (a stale
+value used dozens of times, not just once or twice), which an absolute
+threshold alone misses.
 
 There are two complementary drift surfaces — cross-reference both: the runtime
 surface (`computed-tokens.json`, what the cascade actually produced) and the

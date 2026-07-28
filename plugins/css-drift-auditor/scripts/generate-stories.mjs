@@ -5,6 +5,13 @@
  * Idempotent: never overwrites an existing story. Auto-generated files carry a
  * header marker so they are easy to grep and remove later.
  *
+ * Infers required props from a TS `interface`/`type` alongside the component
+ * (or, failing that, from the destructured parameter names in a plain JS/JSX
+ * signature) and fills them with type-appropriate placeholder values instead
+ * of an empty args object. This is a best-effort heuristic, not a type
+ * checker — components with complex prop shapes (generics, context
+ * dependencies, discriminated unions) may still need manual story refinement.
+ *
  *   node generate-stories.mjs            # dry run, lists what's missing
  *   node generate-stories.mjs --write    # writes the .stories files
  */
@@ -40,6 +47,96 @@ const isComponent = (f) => {
   return exts.some((x) => base.endsWith(x)) && exportsSomething(f);
 };
 
+// --- Required-prop inference (React/TS only; best-effort) -----------------
+//
+// Strategy: find the component's prop-type name from its signature, then
+// find that interface/type's field list in the same file, then build a
+// placeholder value per field based on its declared type. Fields marked `?`
+// are treated as optional and left out of args (Storybook/the component's
+// own defaults should cover them).
+
+function findPropsTypeName(code, compName) {
+  const sigPatterns = [
+    new RegExp(`function\\s+${compName}\\s*\\([^)]*:\\s*([A-Za-z0-9_.]+)`),
+    new RegExp(`const\\s+${compName}\\s*[:=][^=]*\\(\\s*[^)]*:\\s*([A-Za-z0-9_.]+)\\s*\\)\\s*=>`),
+    new RegExp(`const\\s+${compName}\\s*:\\s*React\\.FC<([A-Za-z0-9_.]+)>`),
+    new RegExp(`const\\s+${compName}\\s*:\\s*FC<([A-Za-z0-9_.]+)>`),
+  ];
+  for (const re of sigPatterns) {
+    const m = code.match(re);
+    if (m) return m[1].replace(/^Readonly<|>$/g, "");
+  }
+  return null;
+}
+
+function extractFieldBlock(code, typeName) {
+  const ifaceMatch = code.match(new RegExp(`interface\\s+${typeName}\\s*(?:extends\\s+[^{]+)?\\{([\\s\\S]*?)\\n\\}`));
+  if (ifaceMatch) return ifaceMatch[1];
+  const typeMatch = code.match(new RegExp(`type\\s+${typeName}\\s*=\\s*\\{([\\s\\S]*?)\\n\\}`));
+  if (typeMatch) return typeMatch[1];
+  return null;
+}
+
+function placeholderFor(fieldName, tsType) {
+  const t = tsType.trim();
+  const lname = fieldName.toLowerCase();
+  const literalUnion = t.match(/^['"]([^'"]+)['"]/);
+  if (literalUnion) return JSON.stringify(literalUnion[1]);
+  if (/=>/.test(t) || /^\(.*\)\s*=>/.test(t)) return "() => {}";
+  if (/\[\]$/.test(t) || /^Array</.test(t)) return "[]";
+  if (/boolean/.test(t)) return "true";
+  if (/number/.test(t)) return "1";
+  if (/ReactNode|ReactElement|JSX\.Element|children/.test(t) || lname === "children") return "'Sample content'";
+  if (/string/.test(t)) return lname.includes("id") ? "'sample-id'" : "'Sample'";
+  if (t.startsWith("{") || /Record</.test(t)) return "{}";
+  // Unknown/complex type (custom object, generic, union of objects) — best
+  // guess with a string; better than nothing for triggering a real render.
+  return "'Sample'";
+}
+
+function inferArgsFromFields(fieldBlock) {
+  const args = [];
+  // Split top-level fields on ; or newline, tolerating one level of nested {}.
+  const rawFields = fieldBlock.split(/;|\n/).map((s) => s.trim()).filter(Boolean);
+  for (const raw of rawFields) {
+    const m = raw.match(/^(?:readonly\s+)?([A-Za-z0-9_]+)(\?)?\s*:\s*(.+)$/);
+    if (!m) continue;
+    const [, name, optional, type] = m;
+    if (optional) continue; // optional props: let the component's own defaults handle them
+    if (/^on[A-Z]/.test(name) && !/=>/.test(type)) continue; // event handler without explicit fn type — skip, too ambiguous to guess safely
+    args.push(`${name}: ${placeholderFor(name, type)}`);
+  }
+  return args;
+}
+
+// Fallback when there's no TS prop type to read: pull destructured param
+// names straight off the function signature and default each to a string.
+function inferArgsFromDestructure(code, compName) {
+  const patterns = [
+    new RegExp(`function\\s+${compName}\\s*\\(\\s*\\{([^}]*)\\}`),
+    new RegExp(`const\\s+${compName}\\s*=\\s*\\(\\s*\\{([^}]*)\\}`),
+  ];
+  for (const re of patterns) {
+    const m = code.match(re);
+    if (!m) continue;
+    const names = m[1].split(",").map((s) => s.trim().split(/[:=]/)[0].trim()).filter((s) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(s));
+    return names.map((n) => `${n}: ${placeholderFor(n, "string")}`);
+  }
+  return [];
+}
+
+function inferArgs(code, compName) {
+  const typeName = findPropsTypeName(code, compName);
+  if (typeName) {
+    const block = extractFieldBlock(code, typeName);
+    if (block) {
+      const args = inferArgsFromFields(block);
+      if (args.length) return args;
+    }
+  }
+  return inferArgsFromDestructure(code, compName);
+}
+
 const dirs = (fw.srcDirs?.length ? fw.srcDirs : ["src", "components", "app"]).map((d) => path.join(ROOT, d));
 const all = [...new Set(dirs.flatMap((d) => walk(d)))];
 const existing = new Set(
@@ -52,22 +149,33 @@ const missing = components.filter((c) => !existing.has(path.basename(c).replace(
 
 console.log(`\n📚 ${components.length} components · ${existing.size} have stories · ${missing.length} missing\n`);
 
-const reactStory = (name, imp) =>
-  `${MARKER}\nimport ${name} from '${imp}';\n\nexport default { title: 'Audit/${name}', component: ${name} };\n\nexport const Default = {};\n`;
+const reactStory = (name, imp, args) => {
+  const argsLiteral = args.length ? `{ ${args.join(", ")} }` : null;
+  return `${MARKER}\nimport ${name} from '${imp}';\n\nexport default { title: 'Audit/${name}', component: ${name} };\n\nexport const Default = ${argsLiteral ? `{ args: ${argsLiteral} }` : "{}"};\n`;
+};
 const vueStory = (name, imp) =>
   `${MARKER}\nimport ${name} from '${imp}';\nexport default { title: 'Audit/${name}', component: ${name} };\nexport const Default = { render: () => ({ components: { ${name} }, template: '<${name} />' }) };\n`;
 
-let written = 0;
+let written = 0, withArgs = 0;
 for (const comp of missing) {
   const name = path.basename(comp).replace(/\.[^.]+$/, "");
   const dir = path.dirname(comp);
   const storyExt = fw.framework === "vue" ? ".stories.js" : (exts[0].includes("ts") ? ".stories.tsx" : ".stories.jsx");
   const storyPath = path.join(dir, name + storyExt);
   const imp = "./" + path.basename(comp).replace(/\.(tsx?|jsx?|vue|svelte)$/, "");
-  const content = fw.framework === "vue" ? vueStory(name, imp) : reactStory(name, imp);
+  let content;
+  if (fw.framework === "vue") {
+    content = vueStory(name, imp);
+  } else {
+    let code = "";
+    try { code = fs.readFileSync(comp, "utf8"); } catch {}
+    const args = inferArgs(code, name);
+    if (args.length) withArgs++;
+    content = reactStory(name, imp, args);
+  }
   console.log(`  ${WRITE ? "+ " : "(dry) "}${path.relative(ROOT, storyPath)}`);
   if (WRITE && !fs.existsSync(storyPath)) { fs.writeFileSync(storyPath, content); written++; }
 }
 
-console.log(`\n${WRITE ? `✓ wrote ${written} stories` : "Dry run — pass --write to create these"}`);
-console.log("  Note: components with required props may fail to render; refine those few by hand.\n");
+console.log(`\n${WRITE ? `✓ wrote ${written} stories (${withArgs} with inferred required-prop args)` : `Dry run — pass --write to create these (${withArgs}/${missing.length} would get inferred args)`}`);
+console.log("  Note: this is heuristic prop inference, not a type checker. Components with\n  context dependencies, generics, or complex unions may still need manual refinement.\n");
