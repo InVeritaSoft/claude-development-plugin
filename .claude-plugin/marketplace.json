@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "dev-tools",
-  "version": "1.1.0",
-  "description": "Development tooling for Claude Code: the autonomous dev loop stack and CSS/design-drift auditing.",
+  "version": "1.2.0",
+  "description": "Development tooling for Claude Code: the autonomous dev loop stack, CSS/design-drift auditing, and mobile platform (iOS HIG + Material 3) guidelines.",
   "owner": {
     "name": "Mykhailo"
   },
@@ -24,6 +24,15 @@
       "author": { "name": "Mykhailo" },
       "category": "development",
       "keywords": ["css", "design-tokens", "drift", "storybook", "audit", "consistency", "react", "angular"]
+    },
+    {
+      "name": "mobile-platform-guidelines",
+      "source": "./plugins/mobile-platform-guidelines",
+      "description": "Apple Human Interface Guidelines (HIG) and Android Material Design 3 rules for building native-feeling mobile UI: audits screens, components, navigation, permissions, and notifications against the relevant platform reference before implementation.",
+      "version": "1.0.0",
+      "author": { "name": "Mykhailo" },
+      "category": "development",
+      "keywords": ["mobile", "ios", "android", "hig", "material-design", "react-native", "expo", "ui", "accessibility"]
     }
   ]
 }

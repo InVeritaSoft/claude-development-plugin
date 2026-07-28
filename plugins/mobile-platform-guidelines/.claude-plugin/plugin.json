@@ -1,0 +1,20 @@
+{
+  "name": "mobile-platform-guidelines",
+  "version": "1.0.0",
+  "description": "Apple Human Interface Guidelines (HIG) and Android Material Design 3 rules for building native-feeling mobile UI. Audits screens, components, navigation, permissions, and notifications against the relevant platform reference before implementation.",
+  "author": {
+    "name": "Mykhailo"
+  },
+  "keywords": [
+    "mobile",
+    "ios",
+    "android",
+    "hig",
+    "material-design",
+    "react-native",
+    "expo",
+    "ui",
+    "accessibility"
+  ],
+  "license": "MIT"
+}
