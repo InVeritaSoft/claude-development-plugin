@@ -18,9 +18,11 @@
   },
   "clustering": {
     "colorDistance": 24,
+    "colorAlphaTolerance": 0.05,
     "spacingTolerancePx": 2,
     "fontSizeTolerancePx": 1,
-    "driftMaxUsage": 2
+    "driftMaxUsage": 2,
+    "driftMaxUsageRatio": 0.15
   },
   "output": { "dir": "design-audit" }
 }
