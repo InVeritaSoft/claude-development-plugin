@@ -212,6 +212,8 @@ export function renderWithProviders(ui: React.ReactNode) {
 
 ## Related
 
+- `shared/green-gate.md` — the post-implementation gate that routes here: when the full-unit /
+  full-E2E run finds no harness, it offers exactly this scaffold and records `suggested-scaffold`.
 - `e2e-narrow-fail-focus-success` — green an existing E2E suite one feature at a time (use after scaffolding).
 - `run-tests` — pick and run the right suite.
 - `generate-tests-after-implementation` — add tests for freshly written code.

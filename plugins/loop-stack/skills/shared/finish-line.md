@@ -111,8 +111,30 @@ CHECKPOINT-PR-REVIEW: INDEPENDENT-REVIEW
 
 ## Phase DONE — Closing Gate (mandatory, always last)
 
-After every run — success, block, or partial — parent MUST ask the user:
+After every run — success, block, or partial — the parent runs the **green gate** and then reports it.
 
-> **Related unit tests green? Related E2E green?**
+1. **Run it, don't ask about it.** Execute `.claude/skills/shared/green-gate.md` exactly: full unit
+   suite + full E2E suite, after the final edit, with exact commands and raw tail output. A remembered
+   Phase-3 result is not a substitute — code moved since (Resolver, format, fixups).
+2. **Report the evidence**, then ask the user to confirm:
+
+   > **All unit tests green? All E2E green?** — here is the run: `<green_gate block>`
+
+3. **If either suite doesn't exist**, don't silently pass the gate — make the offer from the green
+   gate (Gherkin + page objects + typed web-element wrappers + hooks via `scaffold-test-projects`),
+   record `suggested-scaffold`, and surface it in the same message.
 
 Wait for explicit user confirmation before considering the session complete. If the user says no or reports a failure, re-enter at the appropriate phase (Tester or Resolver).
+
+```
+CHECKPOINT-DONE: GREEN-GATE
+  REQUIRES:
+    - CHECKPOINT-GREEN passed (see skills/shared/green-gate.md) — full unit + full E2E green post-final-edit
+    - green_gate block shown to the user with the verbatim commands and counts
+    - Absent harness (if any) surfaced with the scaffold offer, not skipped
+  BLOCKED BY:
+    - Asking "tests green?" without having run them
+    - Reporting a Phase-3 run as the closing gate after further edits
+    - Either suite red, or a full run silently narrowed to a tag-filtered one
+  ON FAIL: re-enter at Tester (suite red) or Resolver (implementation red); never close the session on an unrun gate
+```

@@ -47,6 +47,7 @@
 - Unit: **vitest** · locations: tests/ui-tests/src/unit/<app>
 - E2E: **playwright** · dir: tests/ui-tests · tag: `@<KEY>-<n>` · bdd: npx bddgen
 - Test-management sync: zephyr
+- Green gate: **all unit tests green + all E2E green after every implementation** — full suites (no `--filter`, no `--grep`), run after the final edit, reported with the verbatim command + raw output. See `skills/shared/green-gate.md`.
 
 ## Vector memory / knowledge store
 - Store: **qdrant** · collections: per-project; check memory before work · write decisions/fixes after

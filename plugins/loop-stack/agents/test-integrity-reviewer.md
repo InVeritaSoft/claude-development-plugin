@@ -43,7 +43,15 @@ issue_harvester_output: {...}   # consolidated_ac + mandatory_gherkin (+ test-ma
 - If `${testing.testManagement}` ≠ `none`: every test-management case id (per `${testing.e2e.tagConvention}`, e.g. `@TestCaseKey=<KEY>-T###`) has a runnable tagged scenario at the configured location. If `none`, skip this sub-check.
 - Reconcile against `coverage_auditor_output` — any `missing`/`diverged` it reported that is still open is `blocking`.
 
-### 4. Completeness
+### 4. Green gate evidence
+- `tester.green_gate` present with `overall: green` — the **full** unit suite and the **full** E2E
+  suite, each with a verbatim command and raw counts (see `.claude/skills/shared/green-gate.md`).
+- A gate satisfied by a `--filter`/`--grep` run standing in for the full suite is `blocking`.
+- Counts claimed with no captured output, or from a run predating the last edit, is `blocking`.
+- `verdict: suggested-scaffold` (no harness) is **not** blocking on its own — but it must be stated
+  in the report and carried to the PR body; silently absent is `blocking`.
+
+### 5. Completeness
 - No placeholder TODOs, stub implementations, or missing edge-case handling in production code.
 
 Not your lens (do not vote on these): naming/DRY/KISS (Seat A); dependency direction, data protection/compliance, data-access security (Seat B).

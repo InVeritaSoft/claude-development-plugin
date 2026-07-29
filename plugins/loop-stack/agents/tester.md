@@ -17,9 +17,12 @@ Test executor and coverage verifier. Runs lint/typecheck, unit tests, API BDD, a
 > path here is config-driven: `${commands.*}`, the unit runner + locations (`${testing.unit.*}`), the
 > e2e runner/dir/bdd step/tag convention (`${testing.e2e.*}`), the backend/edge platforms for stack
 > bring-up (`${backend.*}`, `${edge.*}`), and `${recoveryNotes}` for known infra failures. If a needed
-> capability is `none`, skip those steps (e.g. `${testing.e2e.runner}` is `none` → no UI E2E; no
-> `${backend.platform}`/`${edge.platform}` → no local stack bring-up). If the config is missing, run the
-> `onboard` skill and stop.
+> capability is `none`, skip those steps (no `${backend.platform}`/`${edge.platform}` → no local stack
+> bring-up). If the config is missing, run the `onboard` skill and stop.
+>
+> **Testing is the exception to "skip when none".** A missing unit or E2E harness is reported, with
+> the `scaffold-test-projects` offer, not silently skipped — see `.claude/skills/shared/green-gate.md`,
+> which owns the definition of green and is mandatory for this agent.
 
 ## Input (from parent — Team Briefing)
 
@@ -69,7 +72,30 @@ dedupe step first). Never mark a test failed for an env/infra reason.
 
 **Failure loop (max 2 rounds):** if a scenario fails, re-spawn Coder with failing log + Team Briefing. Do NOT weaken assertions. Do NOT add `@skip`.
 
-### 5. Phase 3a explicit-skip exit (only if stack bring-up fails)
+### 5. Green gate — the FULL suites (mandatory closing run)
+
+Steps 2 and 4 are the fast iteration loop. The gate is the whole thing, run after the last edit:
+
+```bash
+${commands.test}                                                  # FULL unit suite, repo root, no --filter
+cd ${testing.e2e.dir} && ${testing.e2e.bddStep} && <e2e run command> --reporter=list   # FULL E2E, no --grep
+```
+
+Rules (full contract in `.claude/skills/shared/green-gate.md`):
+- Both suites green, zero failures, zero unexplained skips. One red test anywhere = `verdict: fail`.
+- Report the **verbatim command** and **raw tail output** (counts + timing) per suite. A remembered
+  or pre-edit run doesn't count.
+- Never substitute the tag-filtered run for the full run. If the full E2E genuinely cannot run,
+  that's a block with the failing command recorded — not a green.
+- Re-run once on a suspected flake; the second result stands.
+- **Harness absent** (`${testing.unit.runner}` / `${testing.e2e.runner}` is `none`, or the dir holds
+  no tests): don't skip. Set that stream's `harness: absent` and `verdict: suggested-scaffold`, and
+  tell the parent to offer `scaffold-test-projects` — a Gherkin-driven suite with page objects,
+  typed web-element wrappers, and hooks.
+- **Harness present but the change has no covering test**: that's a coverage gap, not an absent
+  harness — it belongs in `gaps`, and the tests get written (never a scaffold suggestion).
+
+### 6. Phase 3a explicit-skip exit (only if stack bring-up fails)
 
 ```yaml
 phase_3a:
@@ -96,6 +122,22 @@ tester:
     api_bdd: {pass: 0, fail: 0, skip: 0}
     ui_e2e: {pass: 0, fail: 0, skip: 0}
     bringup_ok: true | false
+
+  # Step 5 — the closing full-suite run. verdict: pass REQUIRES overall: green
+  green_gate:
+    unit:
+      harness: present | absent | present-unstructured
+      command: "<verbatim>"
+      result: {pass: 0, fail: 0, skip: 0, duration: "0s"}
+      verdict: green | red | suggested-scaffold
+    e2e:
+      harness: present | absent | present-unstructured
+      command: "<verbatim>"
+      scope: full-suite | tag-filtered (blocked — reason)
+      result: {pass: 0, fail: 0, skip: 0, duration: "0s"}
+      verdict: green | red | suggested-scaffold
+    scaffold_recommended: null | "unit | e2e | both — scaffold-test-projects (gherkin + page objects + web elements + hooks)"
+    overall: green | red | suggested-scaffold
 
   failing: []
 

@@ -36,11 +36,16 @@ Use this skill after:
 - Remove unused lint-suppression directives (e.g. `eslint-disable`)
 - Ensure code follows project conventions
 
-### 3. Test Verification
-- Run relevant test suites (`${commands.test}`, the unit-test script, etc.)
-- Ensure all tests pass
-- Verify no test regressions were introduced
-- Check test coverage if applicable
+### 3. Test Verification — the green gate (mandatory)
+
+Execute `.claude/skills/shared/green-gate.md`; it owns the definition of green. In short:
+- Run the **full** unit suite and the **full** E2E suite — not just the changed package, not just the
+  issue's tag subset — after the final edit
+- Both green, with the verbatim command and raw tail output (counts + timing) recorded
+- No assertion weakened, skipped, or removed to get there
+- If a suite doesn't exist, offer `scaffold-test-projects` (Gherkin + page objects + typed
+  web-element wrappers + hooks) and record `suggested-scaffold` — never a silent skip
+- E2E red → route to `e2e-narrow-fail-focus-success`; the gate stays red until it's green
 
 ### 4. Code Review
 - Review for common mistakes:
@@ -61,7 +66,7 @@ Use this skill after:
 
 1. **Build**: Run build/typecheck commands
 2. **Lint**: Fix all linting issues
-3. **Test**: Run and verify tests pass
+3. **Test**: Run the green gate — full unit suite + full E2E suite green (or the scaffold offer)
 4. **Review**: Manually review code for issues
 5. **Verify**: Ensure integration works correctly
 
@@ -75,6 +80,8 @@ Use this skill after:
 
 ## Related skills
 
+- `shared/green-gate.md` — the authoritative post-implementation gate this skill's step 3 executes.
+- `scaffold-test-projects` — build the suite when the gate finds none (page objects + typed web elements + hooks).
 - `run-tests` — targeted suite runner this skill delegates to.
 - `generate-tests-after-implementation` — add missing coverage before the final pass.
 - `e2e-narrow-fail-focus-success` — when E2E is red, route there instead of looping here.

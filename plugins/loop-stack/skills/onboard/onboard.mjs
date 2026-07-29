@@ -520,6 +520,15 @@ function renderMd(c) {
   L.push("- Unit: **" + v(c.testing.unit.runner) + "** | locations: " + list(c.testing.unit.locations));
   L.push("- E2E: **" + v(c.testing.e2e.runner) + "** | dir: " + v(c.testing.e2e.dir) + " | tag: " + code(c.testing.e2e.tagConvention) + " | bdd: " + v(c.testing.e2e.bddStep));
   L.push("- Test-management sync: " + v(c.testing.testManagement));
+  L.push("- Green gate: **all unit tests green + all E2E green after every implementation** " + DASH + " full suites (no `--filter`, no `--grep`), run after the final edit, reported with the verbatim command + raw output. See `skills/shared/green-gate.md`.");
+  {
+    const noUnitRunner = !c.testing.unit.runner || c.testing.unit.runner === "none";
+    const noE2ERunner = !c.testing.e2e.runner || c.testing.e2e.runner === "none";
+    if (noUnitRunner || noE2ERunner) {
+      const missing = noUnitRunner && noE2ERunner ? "unit or E2E" : noUnitRunner ? "unit" : "E2E";
+      L.push("- **No " + missing + " harness detected** " + DASH + " testing is the one capability where `none` is NOT a silent skip. Offer the `scaffold-test-projects` skill (Gherkin `.feature` files, page objects, typed web-element wrappers, hooks), then re-run `onboard` to record the new runners.");
+    }
+  }
   L.push("");
   L.push("## Vector memory / knowledge store");
   L.push("- Store: **" + v(c.memory.store) + "** | collections: " + v(c.memory.collectionNaming) + " | " + (c.memory.note || ""));
@@ -625,4 +634,5 @@ const noUnit = !cfg.testing.unit.runner || cfg.testing.unit.runner === "none";
 if (noE2E || noUnit) {
   const which = noE2E && noUnit ? "no E2E or unit test project" : noE2E ? "no E2E project" : "no unit-test project";
   console.log("  " + which + " detected -> run the 'scaffold-test-projects' skill to bootstrap a Gherkin-driven Playwright E2E project + unit tests (page objects, web-element wrappers, hooks), then re-run onboard.");
+  console.log("  Until then every implementation must SAY so: the green gate (all units green + all e2e green) reports 'suggested-scaffold', never a silent skip. See skills/shared/green-gate.md.");
 }

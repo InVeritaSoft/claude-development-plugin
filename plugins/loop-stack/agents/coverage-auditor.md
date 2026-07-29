@@ -12,8 +12,12 @@ Read-only gap detector. Takes AC from the issue harvester and touched surface fr
 
 > **Read `.claude/stack.md` first; use its values; never assume a specific tool.** Test roots come from
 > `${testing.e2e.dir}` and the API/unit test locations in config; the Definition of Done path is the
-> project's own. If a needed capability is `none` (e.g. `${testing.e2e.runner}` is `none`), skip those
-> coverage checks. If the config is missing, run the `onboard` skill and stop.
+> project's own. If the config is missing, run the `onboard` skill and stop.
+>
+> **A missing harness is a finding, not a skip.** When `${testing.unit.runner}` / `${testing.e2e.runner}`
+> is `none` or its dir holds no tests, report `harness_status: absent` and recommend
+> `scaffold-test-projects` — see `.claude/skills/shared/green-gate.md`. Distinguish it from a
+> *coverage gap* (harness exists, this change isn't covered), which is written as a normal gap.
 
 ## Input (from parent)
 
@@ -50,7 +54,14 @@ From `context_scout.test_coverage_map`, flag every `coverage_gap: true` entry.
 grep -r "<component_name>|<route_path>" <test_root> --include="*.feature" -l
 ```
 
-### 5. DoD alignment check
+### 5. Harness presence check (before judging coverage)
+
+Confirm each suite actually exists before reporting gaps against it: a configured runner **and**
+tests under `${testing.unit.locations}` / `${testing.e2e.dir}`. Also flag an E2E suite whose steps
+bind raw selectors with no `pages/` or `elements/` layer — that's `present-unstructured`, and the
+recommendation is to add page objects + typed web-element wrappers for the touched screens.
+
+### 6. DoD alignment check
 
 Cross-check against the project's Definition of Done (e.g. `.claude/skills/shared/definition-of-done.md` if present).
 
@@ -58,6 +69,11 @@ Cross-check against the project's Definition of Done (e.g. `.claude/skills/share
 
 ```yaml
 coverage_auditor:
+  harness_status:
+    unit: present | absent | present-unstructured
+    e2e: present | absent | present-unstructured
+    recommendation: null | "scaffold-test-projects — gherkin + page objects + typed web elements + hooks"
+
   mandatory_gherkin:
     - source: "ticket | confluence:<id>"
       scenario: "Scenario title"

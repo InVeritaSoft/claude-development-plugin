@@ -316,7 +316,13 @@ Before marking any implementation as complete, verify:
 - [ ] All external dependencies mocked in tests (NO real calls)
 - [ ] Rendering, user interaction, and state tests written
 - [ ] Edge and accessibility cases tested
-- [ ] Tests and type-checks pass (`${commands.test}`, `${commands.typecheck}`)
+- [ ] Type-checks pass (`${commands.typecheck}`) and lint is clean (`${commands.lint}`)
+- [ ] **Green gate passed** (`.claude/skills/shared/green-gate.md`) — the **full** unit suite and the
+      **full** E2E suite green after the final edit, each with its verbatim command and raw output.
+      Not the changed package only; not the issue's tag subset only
+- [ ] **If a suite doesn't exist**, the `scaffold-test-projects` offer was made (Gherkin + page
+      objects + typed web-element wrappers + hooks) and the outcome recorded — an absent harness is
+      never a silent skip
 - [ ] Code follows existing project patterns
 
 ## Step 6: Running Tests (Typical)
@@ -333,6 +339,18 @@ ${commands.test} --watch
 ${commands.test} --coverage
 ${commands.test} Example.test.<ext>
 ```
+
+Those are the iteration loop. The **closing run** is the green gate — full suites, no narrowing:
+
+```bash
+${commands.test}                                                # FULL unit suite, repo root, no --filter
+cd ${testing.e2e.dir} && ${testing.e2e.bddStep} && <e2e run command> --reporter=list   # FULL E2E, no --grep
+```
+
+Both must come back green before the implementation is reported done. If either runner is `none`,
+don't skip it — offer `scaffold-test-projects` (Gherkin `.feature` files, page objects, typed
+web-element wrappers, hooks) and record the outcome. Full contract:
+`.claude/skills/shared/green-gate.md`.
 
 ## Step 7: Additional Guidance
 

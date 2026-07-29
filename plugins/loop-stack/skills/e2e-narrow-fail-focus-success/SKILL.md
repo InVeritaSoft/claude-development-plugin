@@ -11,7 +11,9 @@ Get the project's E2E suite passing with minimal services and clear failure scop
 
 > **Read `.claude/stack.md` first; use its values; never assume a specific tool.** If a needed capability is `none`, skip those steps. If the config is missing, run the `onboard` skill and stop.
 
-Use the configured E2E runner `${testing.e2e.runner}` (e.g. Playwright, Cypress), its directory `${testing.e2e.dir}`, its BDD/generation step `${testing.e2e.bddStep}` (e.g. `npx bddgen`, for playwright-bdd Gherkin `.feature` files), and the package manager / scripts in `${commands.*}`. If `${testing.e2e.runner}` is `none`, this skill is a no-op — report that and stop.
+Use the configured E2E runner `${testing.e2e.runner}` (e.g. Playwright, Cypress), its directory `${testing.e2e.dir}`, its BDD/generation step `${testing.e2e.bddStep}` (e.g. `npx bddgen`, for playwright-bdd Gherkin `.feature` files), and the package manager / scripts in `${commands.*}`. If `${testing.e2e.runner}` is `none`, there is no suite to narrow — report that and offer `scaffold-test-projects` (Gherkin + page objects + typed web-element wrappers + hooks) rather than stopping silently.
+
+> **Tier work ends at the full suite.** Narrowing is the debugging strategy, not the finish line: once the top tier is green, run the whole suite with no `--grep` and confirm it green — that is what `shared/green-gate.md` requires before any implementation is called done.
 
 ## When to Use
 
@@ -68,6 +70,8 @@ ${commands.test} <e2e suite script, e.g. test:e2e>
 
 ## Related Skills
 
+- `shared/green-gate.md` — the closing all-green gate; this skill is its triage path when E2E is red.
+- `scaffold-test-projects` — build the suite when `${testing.e2e.runner}` is `none`.
 - `run-tests` — broader test-suite selector; delegates here when E2E is red.
 - `memory-first` — memory/knowledge-store load before changing E2E (recall past E2E decisions).
 - `gherkin-run-and-assure` — final assurance step of the Gherkin sub-flow; runs here tier-by-tier.
