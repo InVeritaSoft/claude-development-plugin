@@ -18,18 +18,28 @@ its `plugin.json`, its entry in the root `marketplace.json`, and any docs that c
 
 ## Commands
 
-There is no build step. The only automated check is CI (`.github/workflows/validate.yml`), which you
-can and should reproduce locally before committing:
+There is no build step and no install step. The test suite is `tests/`, run with Node's built-in
+runner — it is what CI (`.github/workflows/validate.yml`) executes, so reproduce it locally before
+committing:
 
 ```bash
-# Syntax-check every script (this is the whole "test suite")
-for f in $(find plugins -name '*.mjs'); do node --check "$f" || echo "FAIL $f"; done
-
-# Validate the JSON manifests parse
-node -e "JSON.parse(require('fs').readFileSync('.claude-plugin/marketplace.json','utf8'))"
-node -e "JSON.parse(require('fs').readFileSync('plugins/loop-stack/.claude-plugin/plugin.json','utf8'))"
-node -e "JSON.parse(require('fs').readFileSync('plugins/css-drift-auditor/.claude-plugin/plugin.json','utf8'))"
+node --test tests/*.test.mjs      # the whole suite (~50 tests, no dependencies)
+node --test tests/onboard.test.mjs  # one file while iterating
 ```
+
+What it covers: `onboard.mjs` detection + rendering + fail-soft behavior (driven as a subprocess
+against throwaway fixture projects), the css-drift-auditor clustering rules and parser helpers, and
+repo invariants — every tracked `.mjs` parses, every manifest is valid, plugin versions match
+between `plugin.json` and `marketplace.json`, no source file carries a raw NUL byte, and every
+`skills/shared/*.md` reference points at a file that exists.
+
+**Tests are dependency-free too** (`node:test` + `node:assert` only). Scripts that need a project's
+own dependencies (the React/Angular `parseFile` paths need `@babel/parser` / `parse5` resolved from
+the target repo) are covered at their pure surface — predicates and helpers — not by installing
+anything here. Keep it that way.
+
+There is no E2E suite: nothing in this repo renders a UI. If that ever changes, `scaffold-test-projects`
+is the harness to reach for (Gherkin + page objects + typed web-element wrappers).
 
 `onboard.mjs` is a zero-dependency Node ES module (Node built-ins only — no `npm install`). Preview
 its detection without writing anything:
@@ -91,9 +101,13 @@ property domain (color / spacing / typography).
   `supabase-migration`, `memory-first` over `memory-qdrant-first`, `test-management-sync` over
   `zephyr-e2e-sync`); the tool-named variants are legacy pointers.
 - `onboard.mjs` stays **dependency-free** (Node built-ins only) and **fail-soft** (detection wrapped so
-  a missing CLI never crashes the run). Preserve both properties.
-- After changing any `.mjs`, run `node --check` on it; after changing any manifest, re-validate the
-  JSON. That is exactly what CI gates on.
+  a missing CLI never crashes the run). Preserve both properties — `tests/onboard.test.mjs` asserts
+  both, including a run with `PATH` emptied.
+- After changing any `.mjs` or manifest, run `node --test tests/*.test.mjs`. That is exactly what CI
+  gates on, and it subsumes the old `node --check` + JSON-parse checks.
+- Never embed a raw control character in a source file — write the escape sequence. A literal NUL
+  makes the file binary to `grep`/`ripgrep`, which silently hides its contents from every search in a
+  repo whose workflow is searching skill and script files. `tests/manifests.test.mjs` enforces this.
 
 ## Note on this repo's own context
 

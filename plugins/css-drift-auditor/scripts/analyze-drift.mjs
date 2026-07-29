@@ -152,7 +152,7 @@ for (const g of groups) {
     const drifts = c.members.filter((m) => isDrift(m, c.canonical));
     for (const d of drifts) {
       const group = g.prefix.replace(/^--/, "");
-      suggested.set(`${group} ${d.value}`, { value: d.value, token, canonical: c.canonical.value, group, intentional: false });
+      suggested.set(`${group}\u0000${d.value}`, { value: d.value, token, canonical: c.canonical.value, group, intentional: false });
       const used = d.components.slice(0, 3).join(", ") + (d.components.length > 3 ? "\u2026" : "");
       lines.push(`| \`${token}\` | \`${c.canonical.value}\` (${c.canonical.count}\u00d7) | \`${d.value}\` (${d.count}\u00d7) | ${used} |`);
       totalDrift++;

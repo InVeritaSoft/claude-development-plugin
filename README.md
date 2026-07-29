@@ -52,8 +52,23 @@ plugins/loop-stack/skills/onboarding/  # onboarding.mjs → writes .claude/stack
 plugins/loop-stack/{MANIFEST,CONVENTIONS}.md  # what the stack contains + how it stays universal
 plugins/css-drift-auditor/         # the CSS-drift plugin
 plugins/mobile-platform-guidelines/  # iOS HIG + Material 3 mobile UI skill
-.github/workflows/validate.yml     # CI: syntax-checks scripts, validates manifests
+tests/                             # unit suite (node:test, zero dependencies)
+.github/workflows/validate.yml     # CI: runs the unit suite
 ```
+
+## Tests
+
+No install step — the suite uses Node's built-in runner and asserts against throwaway fixture
+projects:
+
+```bash
+node --test tests/*.test.mjs
+```
+
+It covers `onboard.mjs` (detection, rendered `stack.md`, fail-soft behavior, re-run safety), the
+css-drift-auditor clustering rules and parser helpers, and repo invariants: every `.mjs` parses,
+manifests are valid, plugin versions match between `plugin.json` and `marketplace.json`, and every
+`skills/shared/*.md` reference resolves.
 
 ## License
 
