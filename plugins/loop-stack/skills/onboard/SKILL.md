@@ -65,4 +65,10 @@ Every other skill/agent/command/loop reads `.claude/stack.md` for these values. 
 > If a needed section is `none`/empty, **skip** those steps (don't ask, don't invent).
 > If `.claude/stack.md` is missing, tell the user to run `onboard` and stop.
 
+**Except testing.** `${testing.*}` set to `none` is surfaced, not skipped: every implementation ends
+with the full unit suite and the full E2E suite green, and an absent harness triggers the
+`scaffold-test-projects` offer (Gherkin + page objects + typed web-element wrappers + hooks). The
+rendered `## Testing` section of `stack.md` carries this line so every skill reading the config sees
+it; the rule itself lives in `skills/shared/green-gate.md`.
+
 See `CONVENTIONS.md` at the repo root for the full token → config mapping.

@@ -159,6 +159,8 @@ Then run the API/integration test target (`${commands.test}` or a narrower API s
 
 Boot check (if `${edge.platform}` ≠ none): start the local functions runtime and smoke-test a health endpoint (see `serverless-function` for the exact local-serve + `${edge.localRestart}` commands).
 
+**Close with the green gate** (`.claude/skills/shared/green-gate.md`): the **full** unit suite and the **full** E2E suite green after the final edit — a backend change that greens the API tests but reddens a UI scenario is not done. If either suite doesn't exist, offer `scaffold-test-projects` (Gherkin + page objects + typed web-element wrappers + hooks) and record the outcome; don't skip silently.
+
 Use the `double-check-code` skill for the final quality gate and `run-tests` for broader suite selection.
 
 ## Anti-patterns (reject immediately)
@@ -178,3 +180,4 @@ Use the `double-check-code` skill for the final quality gate and `run-tests` for
 - `principal-architect` — use proactively on cross-layer diffs.
 - `devfix` — the full fix workflow that orchestrates this skill + tests + verify + push.
 - `run-tests`, `double-check-code` — Phase 8 verification.
+- `shared/green-gate.md`, `scaffold-test-projects` — the closing all-green gate and the harness bootstrap when a suite is missing.

@@ -45,8 +45,22 @@ only when `.claude/stack.md` declares that capability — otherwise they're a no
    `keyPrefix`, lead the subject with the `<KEY>` (e.g. `<KEY> type(scope): description`).
    Lowercase imperative subject, no trailing period; split work that spans scopes into separate
    commits. If `commands.commitNoAttribution` is set, **no assistant attribution.**
-8. **Verify after substantive changes** — Run the project's `commands.typecheck`, `commands.lint`,
-   and targeted tests before claiming done. Never assert success without running them.
+8. **Green gate — all unit tests green + all E2E green after every implementation (mandatory)** —
+   Run `commands.typecheck` and `commands.lint`, then the **full** unit suite and the **full** E2E
+   suite, after the final edit. Never assert success without running them.
+   - **All means all.** Targeted runs (changed package, `testing.e2e.tagConvention` subset) are for
+     iterating; the gate is the whole suite with no `--filter` and no `--grep`.
+   - **Evidence.** Report the verbatim command and the raw tail output (pass/fail/skip + timing).
+     A file check, a `grep`, or a run from before the last edit is not execution.
+   - **Red is red.** One failing test anywhere fails the gate — including a failure unrelated to
+     this change. Never reach green by weakening or skipping an assertion.
+   - **If a suite doesn't exist, offer to build it — don't skip.** This is the one exception to
+     "capability is `none` ⇒ skip": propose a Gherkin-driven suite with **page objects** (one per
+     screen/route, intent methods, no selectors), typed **web-element wrappers** (every locator
+     touched in one place), and **hooks/fixtures** for setup/auth/seeding — the
+     `scaffold-test-projects` skill. Record the answer; an absent harness stays visible.
+   - The full contract lives in the **`shared/green-gate.md`** skill file — this file states the
+     rule, the skill carries the detail.
 9. **LEGO philosophy — component-first UI (smart/dumb split)** *(frontend projects)* — Build UI
    from named components, not anonymous `<div>` trees: **before writing `<div className="...">`,
    check whether a component already exists**; if it does, use it; if not, name and extract it; if
@@ -117,6 +131,7 @@ pre-plan a session. Skills read `.claude/stack.md`; anything the config marks `n
 | E2E (BDD / `.feature`) fixing or coverage | `e2e-narrow-fail-focus-success` |
 | Test-management ↔ E2E mirrors | `test-management-sync` |
 | Verify / double-check after implementation | `double-check-code`, `generate-tests-after-implementation` |
+| Closing gate: all units green + all E2E green (or offer the scaffold) | `shared/green-gate.md` |
 | Run targeted test suites | `run-tests` |
 | Store / retrieve decisions, incidents, rules | `memory-first`, `memory-validator` |
 | Review a GitHub PR | `github-pr-review` |

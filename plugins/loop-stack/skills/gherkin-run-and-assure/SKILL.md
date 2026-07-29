@@ -11,7 +11,7 @@ Run every test and scenario related to the fix, fix any failures, and **assure t
 
 > **Read `.claude/stack.md` first; use its values; never assume a specific tool.** If a needed capability is `none`, skip those steps. If the config is missing, run the `onboard` skill and stop.
 
-Use the configured runners and locations: the E2E runner/dir/BDD step in `${testing.e2e.*}` (e.g. Playwright + `npx bddgen`), the unit runner/locations in `${testing.unit.*}`, and the package manager/scripts in `${commands.*}`. Skip any test type whose runner is `none`.
+Use the configured runners and locations: the E2E runner/dir/BDD step in `${testing.e2e.*}` (e.g. Playwright + `npx bddgen`), the unit runner/locations in `${testing.unit.*}`, and the package manager/scripts in `${commands.*}`. A test type whose runner is `none` is reported with the `scaffold-test-projects` offer, not silently skipped — see `.claude/skills/shared/green-gate.md`.
 
 ## When to Use
 
@@ -41,7 +41,12 @@ Optionally gather code metrics for the changed area if the project's knowledge s
 - **MUST**: Confirm that **all** targeted feature(s), scenarios, and related unit tests **pass**.
 - If any test or scenario fails: fix the cause and re-run the **same** tests until they pass.
 - **Do not stop** until every related feature spec, scenario, and unit test is green.
-- **Report clearly to the user** that all related tests and scenarios pass.
+- **Then run the green gate** — `.claude/skills/shared/green-gate.md`: the **full** unit suite and
+  the **full** E2E suite, not just the features you touched. Assuring the user on a one-feature run
+  is exactly how a sibling scenario ships red.
+- **Report clearly to the user** that all unit tests and all E2E scenarios pass, with the verbatim
+  commands and counts. If a suite doesn't exist, say so and offer `scaffold-test-projects` (Gherkin
+  + page objects + typed web-element wrappers + hooks) instead of quietly assuring on a partial run.
 
 ## Subagent Option
 

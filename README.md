@@ -28,7 +28,7 @@ node plugins/loop-stack/skills/onboarding/onboarding.mjs
 #    → run the `launch-loop-stack` skill
 ```
 
-Anything the config marks `none` is skipped (no CI → no deploy gate; GitHub Issues → no Jira transitions; no e2e runner → no e2e gate). See [plugins/loop-stack/MANIFEST.md](./plugins/loop-stack/MANIFEST.md) for the loop list and [plugins/loop-stack/CONVENTIONS.md](./plugins/loop-stack/CONVENTIONS.md) for how every file stays project-agnostic.
+Anything the config marks `none` is skipped (no CI → no deploy gate; GitHub Issues → no Jira transitions) — **except testing**: every implementation closes with the full unit suite and the full E2E suite green, and a missing harness is surfaced with an offer to scaffold one (Gherkin + page objects + typed web-element wrappers + hooks) rather than skipped. See [green-gate.md](./plugins/loop-stack/skills/shared/green-gate.md). See [plugins/loop-stack/MANIFEST.md](./plugins/loop-stack/MANIFEST.md) for the loop list and [plugins/loop-stack/CONVENTIONS.md](./plugins/loop-stack/CONVENTIONS.md) for how every file stays project-agnostic.
 
 ## css-drift-auditor
 

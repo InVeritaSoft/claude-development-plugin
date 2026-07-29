@@ -10,6 +10,12 @@ they never hardcode a tool, repo, branch, ticket prefix, or username.
 > If a needed section is `none`/empty, **skip** those steps — don't ask, don't invent.
 > If `.claude/stack.md` is missing, tell the user to run `onboard` and stop.
 
+**One documented exception: testing.** `${testing.unit.*}` / `${testing.e2e.*}` set to `none` does
+**not** mean "skip silently". Every implementation ends with the full unit suite and the full E2E
+suite green; when a suite doesn't exist, the flow *offers* to build it (Gherkin + page objects +
+typed web-element wrappers + hooks, via `scaffold-test-projects`) and records the outcome. The rule
+lives in **`skills/shared/green-gate.md`** — reference it, never restate it.
+
 ## Token → config mapping
 
 Replace every hardcoded specific with the config reference. Mention the old concrete tool
@@ -34,6 +40,7 @@ Replace every hardcoded specific with the config reference. Mention the old conc
 | Deno edge, `supabase stop && supabase start`, container names | `edge.*` + `recoveryNotes` |
 | vitest, `tests/ui-tests/src/unit/<app>` | `testing.unit.*` |
 | Playwright, `npx bddgen`, `@RESC-<n>` | `testing.e2e.*` (`tagConvention`) |
+| "run the tests before you're done" | `skills/shared/green-gate.md` — full unit + full E2E green, or offer the scaffold |
 | Zephyr | `testing.testManagement` |
 | Qdrant | `memory.store` |
 | `deploy-*-dev.yml` / `-stage.yml` lists | `ci.deployWorkflows` (per env) |
@@ -88,7 +95,9 @@ Current files: `my-bugs-verify-parked.txt`, `my-stories-verify-parked.txt`, `pr-
 
 ## Rules of thumb
 
-1. **Skip, don't ask.** If the config says a capability is `none`, the step is a no-op.
+1. **Skip, don't ask** — *except testing.* If the config says a capability is `none`, the step is a
+   no-op. The lone exception is `testing.*`: an absent unit/E2E harness is surfaced and the scaffold
+   is offered (`skills/shared/green-gate.md`), never silently skipped.
 2. **Examples, not assumptions.** "your issue tracker (e.g. Jira/GitHub Issues)" — never "Jira".
 3. **No personal data.** Usernames, repos, cloud ids, ticket numbers come from config only.
 4. **Keep the workflow logic.** Generalize *what tool*, not *how the loop reasons*.

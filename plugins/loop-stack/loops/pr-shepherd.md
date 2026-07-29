@@ -59,18 +59,21 @@ waiting).
      change it asks for — with full **assertion integrity** (never weaken or delete a test to satisfy
      a comment without stating why in the reply). For comments you disagree with: reply with the
      technical reasoning, change nothing. Reply to **every** unresolved thread (what changed, or why
-     not). Run `${commands.typecheck}` && `${commands.lint}` + tests targeted at the changed files —
-     must pass. Commit per the PR's ticket key + the tracker's commit convention; push; re-request
-     review from each reviewer who requested changes.
+     not). Run `${commands.typecheck}` && `${commands.lint}`, then the **green gate**
+     (`.claude/skills/shared/green-gate.md`) — full unit suite + full E2E suite green before pushing,
+     not just tests targeted at the changed files. Commit per the PR's ticket key + the tracker's
+     commit convention; push; re-request review from each reviewer who requested changes.
    - **CI-FIX:** run the **`pr-ci-failure-triage`** skill scoped to this one PR — read the failing
      check's logs (`gh run view <id> --log-failed`), classify, make the minimal root-cause fix on
-     the PR branch, verify `${commands.typecheck}` && `${commands.lint}` (+ targeted tests), push.
+     the PR branch, verify `${commands.typecheck}` && `${commands.lint}` and the green gate
+     (`.claude/skills/shared/green-gate.md` — full unit + full E2E green), push.
      **PURE INFRA** (runner outage, secrets, quota, external registry) → not code-fixable: comment
      the diagnosis on the PR, record in the done-file, STOP. Never touch secrets.
    - **CONFLICT:** checkout the PR branch; `git merge origin/<the PR's base branch>`. Resolve each
      conflict **in the intent of both sides** — read both conflicting commits (and their tickets)
      before choosing; never blind-take ours/theirs. Run `${commands.typecheck}` && `${commands.lint}`
-     + tests touching the conflicted files — must pass. Commit the merge; push. (Plain merge, never
+     and the green gate (`.claude/skills/shared/green-gate.md` — full unit + full E2E green; a merge
+     resolution is exactly where a sibling suite breaks). Commit the merge; push. (Plain merge, never
      rebase + force-push — the branch may have review history or others' commits.)
 6. Verify the push landed, then append `"<number>@<headRefOid-BEFORE-the-action>"` to
    `.claude/loops/state/pr-shepherd-done.txt`. If the PR turned out to need a **human** (unresolvable disagreement,
