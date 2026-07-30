@@ -11,8 +11,10 @@ const ROOT = process.cwd();
 const OUT = path.join(ROOT, "design-audit");
 const readJSON = (p) => { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; } };
 
-const cfg = (readJSON(path.join(OUT, "audit.config.json")) || {}).clustering ||
+const fullCfg = readJSON(path.join(OUT, "audit.config.json")) || {};
+const cfg = fullCfg.clustering ||
   { colorDistance: 24, spacingTolerancePx: 2, fontSizeTolerancePx: 1, driftMaxUsage: 2 };
+const gridCfg = fullCfg.grid || { scale: [2, 4, 8, 16, 32, 64, 128, 256, 512], tolerancePx: cfg.spacingTolerancePx, properties: ["padding", "margin", "gap", "borderRadius", "borderWidth"] };
 const data = readJSON(path.join(OUT, "computed-tokens.json"));
 if (!data) { console.error("✗ design-audit/computed-tokens.json not found. Run extract-computed-styles.mjs first."); process.exit(1); }
 const props = data.properties || {};
@@ -22,6 +24,26 @@ const colorDist = (a, b) => { const A = parseRgb(a), B = parseRgb(b); if (!A || 
 const px = (v) => { const m = String(v).match(/^(-?[\d.]+)px$/); return m ? parseFloat(m[1]) : null; };
 const pxDist = (a, b) => { const A = px(a), B = px(b); if (A == null || B == null) return Infinity; return Math.abs(A - B); };
 const exactDist = (a, b) => (a === b ? 0 : Infinity);
+
+const gridTol = gridCfg.tolerancePx ?? cfg.spacingTolerancePx;
+function nearestGridStep(valuePx) {
+  let best = null;
+  for (const step of gridCfg.scale) {
+    const delta = Math.abs(valuePx - step);
+    if (best === null || delta < best.delta) best = { step, delta };
+  }
+  return best;
+}
+function offGridEntries(list) {
+  const out = [];
+  for (const item of list) {
+    const v = px(item.value);
+    if (v == null || v === 0) continue;
+    const nearest = nearestGridStep(v);
+    if (nearest && nearest.delta > gridTol) out.push({ ...item, nearestStep: nearest.step, deltaPx: nearest.delta });
+  }
+  return out.sort((a, b) => b.count - a.count);
+}
 
 function pool(propNames) {
   const map = new Map();
@@ -63,6 +85,7 @@ md += `Values used \u2264 ${cfg.driftMaxUsage}\u00d7 that sit within tolerance o
 
 const suggested = {};
 let totalDrift = 0;
+const gridViolations = [];
 
 for (const g of groups) {
   const list = pool(g.props);
@@ -85,14 +108,31 @@ for (const g of groups) {
   md += lines.length
     ? `| Token | Canonical | Drift value | Used by |\n|---|---|---|---|\n${lines.join("\n")}\n\n`
     : `_No drift \u2014 ${clusters.length} consistent value(s)._\n\n`;
+
+  const onGrid = g.props.some((p) => gridCfg.properties.includes(p));
+  if (onGrid) {
+    const offGrid = offGridEntries(list);
+    md += `### Off-grid values\n\n`;
+    if (offGrid.length) {
+      const gLines = offGrid.map((o) => {
+        const used = o.components.slice(0, 3).join(", ") + (o.components.length > 3 ? "\u2026" : "");
+        gridViolations.push({ value: o.value, nearestStep: `${o.nearestStep}px`, deltaPx: o.deltaPx, group: g.prefix.slice(2), count: o.count });
+        return `| \`${o.value}\` (${o.count}\u00d7) | \`${o.nearestStep}px\` | ${o.deltaPx.toFixed(1)}px | ${used} |`;
+      });
+      md += `| Value | Nearest grid step | Delta | Used by |\n|---|---|---|---|\n${gLines.join("\n")}\n\n`;
+    } else {
+      md += `_All values on the grid (\u00b1${gridTol}px)._\n\n`;
+    }
+  }
 }
 
-md += `---\n\n**${totalDrift} drift values flagged.** Mark intentional one-offs with \`"intentional": true\` in suggested-tokens.json before running fix agents.\n`;
+md += `---\n\n**${totalDrift} drift values flagged.** ${gridViolations.length} off-grid values flagged against the [${gridCfg.scale.join(", ")}] scale. Mark intentional one-offs with \`"intentional": true\` in suggested-tokens.json before running fix agents.\n`;
 
 const suggestedOut = {
   generatedAt: new Date().toISOString(),
   driftCount: totalDrift,
   replacements: Object.entries(suggested).map(([value, info]) => ({ value, ...info })),
+  gridViolations,
 };
 
 fs.writeFileSync(path.join(OUT, "drift-report.md"), md);
@@ -100,4 +140,5 @@ fs.writeFileSync(path.join(OUT, "suggested-tokens.json"), JSON.stringify(suggest
 
 console.log(`\n✓ design-audit/drift-report.md`);
 console.log(`✓ design-audit/suggested-tokens.json`);
-console.log(`\n  ${totalDrift} drift values flagged across ${groups.length} token groups\n`);
+console.log(`\n  ${totalDrift} drift values flagged across ${groups.length} token groups`);
+console.log(`  ${gridViolations.length} off-grid values flagged against the [${gridCfg.scale.join(", ")}] scale\n`);

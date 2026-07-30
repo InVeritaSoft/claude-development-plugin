@@ -22,5 +22,10 @@
     "fontSizeTolerancePx": 1,
     "driftMaxUsage": 2
   },
+  "grid": {
+    "scale": [2, 4, 8, 16, 32, 64, 128, 256, 512],
+    "tolerancePx": 2,
+    "properties": ["padding", "margin", "gap", "borderRadius", "borderWidth"]
+  },
   "output": { "dir": "design-audit" }
 }
