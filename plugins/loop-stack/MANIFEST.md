@@ -11,7 +11,7 @@ and every file reads from it. See `CONVENTIONS.md` for the token → config mapp
 2. Run **`onboard`** — detects the stack, writes `.claude/stack.md` (issue tracker, branch model, package manager, frameworks, backend/DB, edge, tests, CI/deploy, design, reporting), creates the gitignored `.claude/loops/state/` dir, and materializes `loops/*.md` into `.claude/loops/` (cron prompts reference them there).
 3. Run **`launch-loop-stack`** — registers the session crons, now driven entirely by your config.
 
-Anything in the config set to `none`/empty is skipped — no deploy gate if you have no CI, no e2e gate if you have no e2e runner, no tracker transitions if you use GitHub Issues, etc.
+Anything in the config set to `none`/empty is skipped — no deploy gate if you have no CI, no tracker transitions if you use GitHub Issues, etc. **Testing is the one exception:** every implementation ends with the full unit suite and the full E2E suite green, and a missing harness is surfaced with an offer to build it (Gherkin + page objects + typed web-element wrappers + hooks) rather than silently skipped — see `skills/shared/green-gate.md`.
 
 ## Loops (session-only crons created by `launch-loop-stack`)
 
@@ -33,7 +33,7 @@ Scoping invariant: work is selected by `${issueTracker.myWorkQuery}` — user-sc
 - **skills/onboard/** — writes `.claude/stack.md` (`onboard.mjs` + `stack.example.md`) and drops the universal `CLAUDE.template.md` as the project's root `CLAUDE.md`. Run first.
 - **skills/lego-philosophy/** — the reusable, project-agnostic UI architecture rule (smart/dumb split + component inventory); the root `CLAUDE.md` and `frontend-component-conventions` reference it.
 - **loops/ (6)** — per-tick specs (FIX/VERIFY/STORY-VERIFY, PR-REVIEW, DEPLOY-FIX, PR-SHEPHERD, SYNC-INTEGRATION, DAILY-REPORT).
-- **skills/ (~30)** — orchestration (launch/stop-loop-stack), the devfix fix-path, the gherkin sub-flow, test/review/memory skills. Tool-specific skills are generic + config-driven (database-migration, serverless-function, memory-first, test-management-sync).
+- **skills/ (~30)** — orchestration (launch/stop-loop-stack), the devfix fix-path, the gherkin sub-flow, test/review/memory skills, and `scaffold-test-projects` (bootstrap a Gherkin-driven Playwright E2E project + unit tests: page objects, web-element wrappers, hooks). Tool-specific skills are generic + config-driven (database-migration, serverless-function, memory-first, test-management-sync).
 - **agents/ (13)** — the implement/review agent team (analyzer, coder, tester, reviewers, resolver, designer, etc.), tool-agnostic.
 - **commands/ (10)** — fix/PR-flow slash commands.
 - **CONVENTIONS.md** — how every file stays universal (the config contract + token map).
@@ -42,3 +42,25 @@ Scoping invariant: work is selected by `${issueTracker.myWorkQuery}` — user-sc
 
 > Read `.claude/stack.md` first. Use its values; never assume a specific tool. If a needed
 > capability is `none`, skip those steps. If the config is missing, run `onboard` and stop.
+> **Testing excepted:** an absent unit/E2E harness is reported with the `scaffold-test-projects`
+> offer, never a silent skip (`skills/shared/green-gate.md`).
+
+## Shared contracts (single sources of truth — reference, never restate)
+
+| File | Owns |
+|---|---|
+| `skills/shared/green-gate.md` | The post-implementation gate: all unit tests green + all E2E green, or offer the scaffold |
+| `skills/shared/definition-of-done.md` | The DoD checklist every implementation task satisfies |
+| `skills/shared/finish-line.md` | Phases 3b → DONE (format, push, writeback, PR, PR-review, closing gate) |
+| `skills/shared/superpowers-integration.md` | Optional delegation of shared disciplines to the superpowers plugin |
+| `skills/shared/phase-dc.md`, `phase-live-render.md`, `toolchain-gotchas.md` | Double-check audit, live-render check, static infra gotchas |
+
+## Superpowers integration (optional)
+
+If the official **superpowers** plugin is installed, `onboard` records `integrations.superpowers: yes`
+in `.claude/stack.md`, and the shared engineering disciplines delegate to it: TDD, systematic
+debugging, verification-before-completion, requesting/receiving code review, parallel-agent
+dispatch, and finishing-a-development-branch. When it is absent (`no`), every touchpoint falls back
+to its built-in checkpoint — nothing hard-depends on superpowers. The delegation contract and the
+full touchpoint → skill map live in **`skills/shared/superpowers-integration.md`** (the single source
+of truth; other files reference it, never restate it).

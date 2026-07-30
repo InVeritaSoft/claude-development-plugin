@@ -10,6 +10,12 @@ they never hardcode a tool, repo, branch, ticket prefix, or username.
 > If a needed section is `none`/empty, **skip** those steps — don't ask, don't invent.
 > If `.claude/stack.md` is missing, tell the user to run `onboard` and stop.
 
+**One documented exception: testing.** `${testing.unit.*}` / `${testing.e2e.*}` set to `none` does
+**not** mean "skip silently". Every implementation ends with the full unit suite and the full E2E
+suite green; when a suite doesn't exist, the flow *offers* to build it (Gherkin + page objects +
+typed web-element wrappers + hooks, via `scaffold-test-projects`) and records the outcome. The rule
+lives in **`skills/shared/green-gate.md`** — reference it, never restate it.
+
 ## Token → config mapping
 
 Replace every hardcoded specific with the config reference. Mention the old concrete tool
@@ -34,12 +40,14 @@ Replace every hardcoded specific with the config reference. Mention the old conc
 | Deno edge, `supabase stop && supabase start`, container names | `edge.*` + `recoveryNotes` |
 | vitest, `tests/ui-tests/src/unit/<app>` | `testing.unit.*` |
 | Playwright, `npx bddgen`, `@RESC-<n>` | `testing.e2e.*` (`tagConvention`) |
+| "run the tests before you're done" | `skills/shared/green-gate.md` — full unit + full E2E green, or offer the scaffold |
 | Zephyr | `testing.testManagement` |
 | Qdrant | `memory.store` |
 | `deploy-*-dev.yml` / `-stage.yml` lists | `ci.deployWorkflows` (per env) |
 | "Prod deploys are human-gated" | `ci.humanGatedEnvs` |
 | Figma | `design.figma` |
 | docker/supabase recovery runbook | `recoveryNotes` |
+| superpowers process skills (TDD, verify, review, agent fan-out) | `integrations.superpowers` (yes → prefer them; no/absent → built-in checkpoints; see `skills/shared/superpowers-integration.md`) |
 
 ## Tool-specific skills → generic, config-driven equivalents
 
@@ -56,6 +64,25 @@ Rename and rewrite so they adapt to the configured tool (or no-op when it's `non
 > Renaming = add the new file (we can't delete here). When sweeping, create the generic file and
 > leave a one-line pointer in the old one, or have the user delete the old name after.
 
+## Tracker-adaptive config — Jira, GitHub Issues, Linear are co-equal
+
+A "team" in this stack is a **project/repo**: one `.claude/stack.md` per repo, each bound to whatever
+tracker that project uses. `onboard` treats Jira, GitHub Issues, and Linear as **first-class, equal
+paths** — it seeds tracker-appropriate idioms (never Jira-only assumptions) so every skill/loop reads
+the same `${issueTracker.*}` tokens regardless of tool:
+
+| Concept | Jira | GitHub Issues | Linear |
+|---|---|---|---|
+| `keyPrefix` / `<KEY>` | `PROJ` → `PROJ-123` | `#` → `#123` | team key → `ENG-12` |
+| `myWorkQuery` | JQL (`assignee = currentUser() AND sprint in openSprints()`) | issue search (`is:open is:issue assignee:@me`) | filter (`assignee:me state:started`) |
+| `states.*` | named workflow statuses | `open`/`closed` + **labels** for interim states | named workflow states |
+| transition | `transitionIds` or state name | add/remove the state **label** (+ close for `done`) | by state name |
+| `handoffAssignee: reporter` | the Jira reporter | the **issue author** | the issue **creator** |
+
+`reporter` always means *the person who opened the issue*, whatever the tracker calls it. Skills and
+loops must not hardcode Jira verbs (transition ids, sprints, JQL) — read the token and act per the
+configured tool; if a tracker has no equivalent for a step, skip it.
+
 ## Loop state — per-project, never global
 
 All loop park/dedupe files live in the project's **`.claude/loops/state/`** (created by `onboard`,
@@ -68,7 +95,9 @@ Current files: `my-bugs-verify-parked.txt`, `my-stories-verify-parked.txt`, `pr-
 
 ## Rules of thumb
 
-1. **Skip, don't ask.** If the config says a capability is `none`, the step is a no-op.
+1. **Skip, don't ask** — *except testing.* If the config says a capability is `none`, the step is a
+   no-op. The lone exception is `testing.*`: an absent unit/E2E harness is surfaced and the scaffold
+   is offered (`skills/shared/green-gate.md`), never silently skipped.
 2. **Examples, not assumptions.** "your issue tracker (e.g. Jira/GitHub Issues)" — never "Jira".
 3. **No personal data.** Usernames, repos, cloud ids, ticket numbers come from config only.
 4. **Keep the workflow logic.** Generalize *what tool*, not *how the loop reasons*.

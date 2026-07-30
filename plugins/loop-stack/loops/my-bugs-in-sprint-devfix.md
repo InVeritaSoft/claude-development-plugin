@@ -52,6 +52,8 @@ Job IDs are assigned by `launch-loop-stack` at registration (`CronList` to see t
 - **Open + any pending/queued check** → stop (later tick retries).
 - **Open + a failing check** → leave open — the **PR-SHEPHERD** loop triages and fixes it (see `.claude/loops/pr-shepherd.md`), stop.
 
+> When `${integrations.superpowers}` is set, drive the merge/handoff in Step 1 with `superpowers:finishing-a-development-branch` — see `skills/shared/superpowers-integration.md`. Absent → use the steps as written; never block a tick on a missing plugin.
+
 **Step 2 — start a new fix** (only if no in-flight loop PR):
 1. Query bugs in `${states.todo}` via `${issueTracker.myWorkQuery}`. None → stop.
 2. Overlap guard dirty → stop.

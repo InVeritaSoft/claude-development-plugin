@@ -27,6 +27,8 @@ NO PRODUCTION-CODE FIX WITHOUT A FAILING TEST FIRST
 
 The RED evidence is a first-class artifact: it lives in the Coder report and is gated by **CHECKPOINT-2-RED** before any GREEN production diff is accepted.
 
+> If `${integrations.superpowers}`, invoke `superpowers:test-driven-development` to drive this RED→GREEN→REFACTOR discipline (and `superpowers:systematic-debugging` when diagnosing the failing symptom / a RED that fails for the wrong reason) — see `skills/shared/superpowers-integration.md`. Otherwise the Iron-Law checkpoints above remain authoritative.
+
 ## Lesson loop — ask + store project memory (MANDATORY)
 
 Lessons live in the configured memory/knowledge store `${memory.store}` (e.g. Qdrant) as the single source of truth — never hardcode lesson text into this skill or any other. If `${memory.store}` is `none`, skip both sides of this loop. Otherwise both sides fire on every devfix:
@@ -390,12 +392,12 @@ All suites run in parallel with `run_in_background: true`. Report must include t
 - A `gap` in either section = `verdict: fail`
 - Return `verdict: skip` only with a fully-populated `phase_3a_block`
 
-**Final-gate rule (non-negotiable):** the applicable coverage streams MUST all be green before CHECKPOINT-3 passes:
-1. **Unit tests** — full unit suite green for every changed package
-2. **E2E** — the issue's `${testing.e2e.tagConvention}`-tagged scenarios + every changed scenario green via `${testing.e2e.runner}` (skip when `${testing.e2e.runner}` is none)
+**Final-gate rule (non-negotiable):** read `.claude/skills/shared/green-gate.md` and execute it — it is the single source of truth for "green". Every stream MUST be green before CHECKPOINT-3 passes:
+1. **Unit tests** — the **full** unit suite green, every package (not only the changed one)
+2. **E2E** — the **full** E2E suite green via `${testing.e2e.runner}`, run from `${testing.e2e.dir}` with no `--grep`. The issue-tagged and changed scenarios are the iteration loop; the whole suite is the gate. If `${testing.e2e.runner}` is `none`, the green gate's absent-harness branch fires — make the `scaffold-test-projects` offer (Gherkin + page objects + typed web-element wrappers + hooks) and record `suggested-scaffold`; do **not** silently skip
 3. **Test-management** — every test-management-tagged scenario under `${testing.e2e.dir}/<features>/phase2/<STORY-KEY>/<tm>/` green (run with `--grep` on the test-case tag, e.g. `@TestCaseKey=<PREFIX>-T`, or the union of the specific keys) — skip when `${testing.testManagement}` is none
 
-If any applicable stream is red or missing, verdict is fail. No partial passes.
+If any applicable stream is red or missing, verdict is fail. No partial passes. Tester's `green_gate` block goes into Team Briefing `## Green gate`.
 
 ```
 CHECKPOINT-3: TESTER
@@ -405,8 +407,9 @@ CHECKPOINT-3: TESTER
     - UI-E2E suite executed via ${testing.e2e.runner} --grep on the issue tag (mandatory when ≠ none — package-manager dedupe to fix version conflicts first)
     - Test-management E2E suite executed: --grep on the test-case tag (e.g. @TestCaseKey=<PREFIX>-T<keys>) against the story's test-management folder; raw output in report (skip when ${testing.testManagement} is none)
     - double-check-code skill run by parent (mandatory)
-    - Unit tests: green for every changed package
-    - E2E: all issue-tagged scenarios + all changed scenarios green (or E2E none)
+    - CHECKPOINT-GREEN passed (skills/shared/green-gate.md) — ## Green gate present with the green_gate block
+    - Unit tests: FULL suite green (every package, no --filter), command + raw output in report
+    - E2E: FULL suite green (no --grep), command + raw output in report — or absent harness recorded as suggested-scaffold with the offer made
     - Test-management: every scenario under <STORY-KEY>/<tm>/ tagged with its test-case tag green (or test-management none)
     - All Docs ACs: covered (file:line) — no gaps
     - All test-management cases: covered (feature:line) — no gaps
@@ -415,6 +418,8 @@ CHECKPOINT-3: TESTER
   BLOCKED BY:
     - Any suite missing from report (grep/file-check substitutes not accepted)
     - UI-E2E or test-management E2E not executed when applicable (infra-skip only accepted after a dedupe attempt fails)
+    - Full-suite gate silently narrowed to the tag-filtered iteration run
+    - ${testing.unit.runner} or ${testing.e2e.runner} is none and the scaffold offer was not made
     - double-check-code not run
     - verdict: pass with suites marked skip and no phase_3a_block
     - Any Docs AC or test-management case gap
@@ -489,6 +494,8 @@ CHECKPOINT-3.6: RESOLVER
 ## Phases 3b → DONE — Finish line (shared)
 
 Read `.claude/skills/shared/finish-line.md` and execute it exactly. It owns, in order: **Phase 3b** Format (CHECKPOINT-3b), **Phase 3c** Push incl. the project's pre-commit code-graph update if configured (e.g. `graphify update .`) (CHECKPOINT-3c), **Phase 4** Memory Writeback to `${memory.store}` — mandatory even on block (CHECKPOINT-4), **Phase PR**, **Phase PR-Review** (independent `pr-reviewer` cold review posting comments on the PR via the `${project.vcsHost}` connector, CHECKPOINT-PR-REVIEW), and **Phase DONE** closing gate (ask the user: related unit tests green? related E2E green?).
+
+> If `${integrations.superpowers}`: drive the **Phase DONE** closing gate with `superpowers:verification-before-completion`, the **Phase PR-Review** cold review with `superpowers:requesting-code-review` / `superpowers:receiving-code-review`, and the merge/handoff with `superpowers:finishing-a-development-branch` — see `skills/shared/superpowers-integration.md`. Otherwise the finish-line checkpoints remain authoritative.
 
 ---
 
@@ -611,6 +618,10 @@ Per AC / Gherkin block / test-management case → covered (file:line) | diverged
 ## Tester report (round <n>)
 Verdict / Suites run (command + tail output + timing) / Failing / AC coverage / Gaps
 
+## Green gate
+green_gate block from skills/shared/green-gate.md — unit {harness, command, counts, verdict} /
+e2e {harness, command, scope, counts, verdict} / scaffold_offer / overall: green | red | suggested-scaffold
+
 ## Review panel report (round <n>)
 Seat A / Seat B / Seat C verdicts + Findings YAML each / coordinator tally (unanimous? ) / Ready to push
 
@@ -638,6 +649,8 @@ Full subagent YAML output shapes → see `output-contracts.md`.
 | Tester fail, likely_owner=coder | Re-spawn Coder round 2; if still fails → Resolver |
 | Tester fail, likely_owner=tester | Re-spawn Tester (test files only); max 2 rounds |
 | Tester fail, likely_owner=infra | Shell debug or explicit Phase 3a skip with block |
+| Tester green on the tag subset but the full suite was never run | Not green — re-spawn Tester for the full unit + full E2E run (`skills/shared/green-gate.md`) |
+| `${testing.unit.runner}` or `${testing.e2e.runner}` is `none` | Green gate absent-harness branch: offer `scaffold-test-projects` (Gherkin + page objects + typed web elements + hooks), record `suggested-scaffold`; never skip silently |
 | Tester skip without phase_3a_block | Re-spawn Tester |
 | Tester block | Stop. Write incident to `${memory.store}` |
 | Review panel not unanimous (any seat request_changes or any critical/major) | Coordinator consolidates findings → Resolver → re-Tester → re-spawn FULL panel; max 2 panel rounds |
@@ -665,5 +678,6 @@ Static toolchain/platform facts live in `.claude/skills/shared/toolchain-gotchas
 - Memory / knowledge store: `memory-first`, `memory-validator`, `the-journalist`
 - By area: `backend-feature-workflow`, `database-migration`, `serverless-function`, `frontend-component-conventions`, `react-frontend-developer`, `figma-plan-and-validate` → `implement-designs`
 - Verification: `run-tests`, `double-check-code`, `e2e-narrow-fail-focus-success`, `test-endpoint`
+- Green gate (full unit + full E2E, or the scaffold offer): `skills/shared/green-gate.md`, `scaffold-test-projects`
 - Architecture escalation: `principal-architect`
 - Post-delivery: `github-pr-review`

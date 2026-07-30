@@ -20,6 +20,20 @@ Work is orchestrated by a four-role subagent team so design output lands on exis
 > stop. Concrete tools named below (Figma + its MCP, MUI, Tailwind, Playwright) are **examples** — match the
 > configured stack.
 
+> **Coverage gate (mandatory) — audit EVERY design, read EVERY spec page in full.** Never sample. Before any
+> Coder work:
+> - **All designs, not a few.** Enumerate every design node / frame / screen / variant / link the user provided
+>   (and every child frame the metadata reveals), then audit **all** of them — empty, filled, error, loading,
+>   hover, focus states included. No "representative subset", no "the main screens", no stopping at the first few.
+>   If the input spans multiple screens, run the auto-spawn sequence once per screen (batch the design-tool MCP
+>   calls in small groups for API sanity, but cover the whole set). The context window is large (~1M) — the full
+>   design set fits; breadth is the default, not an optimization to defer.
+> - **Whole Confluence/spec pages.** When the ticket links Confluence or other spec pages (via
+>   `figma-plan-and-validate` upstream or the AC gate), read each linked page **in full** — the entire page body
+>   plus the ticket description and **all** comments — never an excerpt, summary, or first-section skim. Fetch the
+>   complete page (e.g. `getConfluencePage` whole body) and fold every AC item into the Design Brief. A linked
+>   page left unread, or read only partially, BLOCKS the coverage gate.
+
 > **Lessons gate (mandatory) — ask the knowledge store, never hardcode.** Before the Coder writes anything, the
 > parent MUST query the project's knowledge/memory store (`${memory.store}`) for lessons relevant to this screen
 > and fold them into the Design Brief as binding constraints — load via the **`memory-first`** skill with the

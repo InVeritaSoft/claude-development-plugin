@@ -53,6 +53,8 @@ is scoped to the authenticated user (`@me`); DEPLOY-FIX by repo/branch.
 
 > Demo / release freezes are situational and NOT baked in. Honor a declared freeze ad hoc (skip merges/deploys during it).
 
+> **Superpowers (optional).** When `${integrations.superpowers}` is set, ticks that fan out an agent team (FIX runs `devfix`; PR-SHEPHERD's parallel triage) may drive that fan-out with `superpowers:dispatching-parallel-agents` / `superpowers:subagent-driven-development`, and any merge/handoff step (FIX Step 1, PR-SHEPHERD) with `superpowers:finishing-a-development-branch` — see `skills/shared/superpowers-integration.md`. Absent → use the built-in tick logic. Never let a missing superpowers plugin block a tick.
+
 ---
 
 ### Loop 1 — FIX  (`cron: */5 6-20 * * 1-5`, recurring)

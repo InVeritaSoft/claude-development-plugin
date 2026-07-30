@@ -30,12 +30,17 @@ Every implementation task (devfix, implement-e2e, feature branch) must satisfy a
 - [ ] No new sensitive fields exposed to the frontend beyond what the AC requires
 - [ ] Error messages are generic and non-enumerating (no "user not found" vs "wrong password")
 
-## Tests
+## Tests — the green gate (`skills/shared/green-gate.md` is authoritative)
 
-- [ ] All tracker-tied and spec-sourced scenarios exist in the repo and pass (`${testing.e2e.runner}` green; skip if e2e is `none`)
+- [ ] **Full unit suite green** — every package, not just the changed one; exact command + raw output recorded
+- [ ] **Full E2E suite green** — whole suite, not just the issue's `${testing.e2e.tagConvention}` subset; exact command + raw output recorded
+- [ ] Both suites run **after the final edit** — no green claimed from a stale run
+- [ ] If a suite doesn't exist: the `scaffold-test-projects` offer was made (Gherkin + page objects + typed web-element wrappers + hooks) and the outcome recorded as `suggested-scaffold` — an absent harness is never a silent skip
+- [ ] All tracker-tied and spec-sourced scenarios exist in the repo and pass
 - [ ] Unit tests added or updated for every changed module (mirror source structure per `${testing.unit.locations}`)
 - [ ] No test assertions weakened or commented out to make a suite pass
 - [ ] E2E scenarios run against the local stack (`${backend.platform}` + `${edge.platform}` + targeted app) — not skipped without a documented reason
+- [ ] `green_gate` report block present with `overall: green` (or an explicit, user-surfaced `suggested-scaffold`)
 
 ## Architecture
 

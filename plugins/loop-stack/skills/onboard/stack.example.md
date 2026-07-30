@@ -47,6 +47,7 @@
 - Unit: **vitest** · locations: tests/ui-tests/src/unit/<app>
 - E2E: **playwright** · dir: tests/ui-tests · tag: `@<KEY>-<n>` · bdd: npx bddgen
 - Test-management sync: zephyr
+- Green gate: **all unit tests green + all E2E green after every implementation** — full suites (no `--filter`, no `--grep`), run after the final edit, reported with the verbatim command + raw output. See `skills/shared/green-gate.md`.
 
 ## Vector memory / knowledge store
 - Store: **qdrant** · collections: per-project; check memory before work · write decisions/fixes after
@@ -65,6 +66,9 @@
 
 ## Compliance / data protection
 - Regime: **HIPAA** (reviewers apply data-protection/sensitive-data checks only when this is not "none")
+
+## Integrations
+- Superpowers plugin: **yes** (when yes, skills prefer the superpowers process skills — TDD, systematic-debugging, verification-before-completion, requesting/receiving-code-review, dispatching-parallel-agents, finishing-a-development-branch — and fall back to the built-in checkpoints when no; see `skills/shared/superpowers-integration.md`)
 
 ## Project recovery / runbook notes
 - Edge "module not found" cascade: if e2e mass-fails at /login, check `docker logs --since 3m <edge-container> | grep -c <module>`; >0 ⇒ full `supabase stop && supabase start`; =0 ⇒ refresh stale e2e auth storage state. Never mark an issue failed for an env/infra reason.

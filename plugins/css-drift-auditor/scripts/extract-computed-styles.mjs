@@ -62,7 +62,12 @@ async function getChromium() {
     return null;
   };
   const pw = await tryImport("playwright");
-  if (pw && pw.chromium) return pw.chromium;
+  // playwright/index.js does `module.exports = require('playwright-core')` —
+  // a dynamic re-export that Node's cjs-module-lexer can't statically
+  // analyze, so a dynamic import() only ever exposes it under `.default`,
+  // not as a synthesized named export. Check both shapes.
+  const chromium = pw?.chromium || pw?.default?.chromium;
+  if (chromium) return chromium;
   console.error("\n✗ Playwright not found in your project. Install:\n  npm i -D playwright && npx playwright install chromium\n");
   process.exit(1);
 }
@@ -88,8 +93,10 @@ function listStories(index) {
     .map((e) => ({ id: e.id, title: e.title, name: e.name }));
 }
 
-// Serialized into the browser context per story.
-function extractFromDOM(props, ignoreList) {
+// Serialized into the browser context per story. Playwright's page.evaluate
+// only forwards a single serializable arg to the page function (unlike
+// Puppeteer, which allows variadic args) — bundle everything into one object.
+function extractFromDOM({ props, ignoreList }) {
   const ignore = new Set(ignoreList);
   const root = document.querySelector("#storybook-root") || document.querySelector("#root") || document.body;
   const corner = {
@@ -126,6 +133,25 @@ function extractFromDOM(props, ignoreList) {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 
+  // Never let a stray confirm()/alert()/prompt() in a story block the whole
+  // run — auto-dismiss so a single misbehaving component can't stall the
+  // serial extraction loop.
+  page.on("dialog", (d) => d.dismiss().catch(() => {}));
+
+  // Track uncaught page errors and error-level console output per story. A
+  // story that throws during render doesn't always reject page.goto/evaluate
+  // — Storybook's own error boundary/overlay still populates the DOM, so a
+  // naive extraction would silently scrape that error UI's styling as if it
+  // were real design values. Treat any error signal during a story's load
+  // window as a hard skip instead.
+  let storyErrors = [];
+  page.on("pageerror", (e) => storyErrors.push(String(e.message || e)));
+  page.on("console", (msg) => { if (msg.type() === "error") storyErrors.push(msg.text()); });
+
+  // Known Storybook error-boundary/overlay markers across SB6–8, as a
+  // second, DOM-based signal independent of the JS error events above.
+  const ERROR_SELECTOR = "#error-message, #error-stack, .sb-errordisplay, [class*='errordisplay'], [id*='error-message']";
+
   const agg = {}; // prop -> value -> { count, stories:Set, components:Set }
   const merge = (storyId, title, dom) => {
     for (const [prop, vals] of Object.entries(dom)) {
@@ -138,14 +164,24 @@ function extractFromDOM(props, ignoreList) {
   };
 
   const base = STATIC_DIR ? `file://${path.join(ROOT, STATIC_DIR)}` : SB_URL;
-  let done = 0, skipped = 0;
+  let done = 0, skipped = 0, skippedErrors = 0;
   for (const story of stories) {
     const url = `${base}/iframe.html?id=${encodeURIComponent(story.id)}&viewMode=story`;
+    storyErrors = [];
     try {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: PER_STORY_TIMEOUT });
       await page.waitForSelector("#storybook-root > *, #root > *", { timeout: 3000 }).catch(() => {});
-      const dom = await page.evaluate(extractFromDOM, PROPS, IGNORE);
-      merge(story.id, story.title, dom);
+      // Give the error boundary/console a brief window to fire after the
+      // initial paint, since React error logging can lag the first frame.
+      await page.waitForTimeout(50);
+      const hasErrorDom = await page.locator(ERROR_SELECTOR).count().then((n) => n > 0).catch(() => false);
+      if (storyErrors.length || hasErrorDom) {
+        skipped++; skippedErrors++;
+        process.stderr.write(`  ⚠ skip ${story.id} (render error): ${(storyErrors[0] || "error UI detected").split("\n")[0]}\n`);
+      } else {
+        const dom = await page.evaluate(extractFromDOM, { props: PROPS, ignoreList: IGNORE });
+        merge(story.id, story.title, dom);
+      }
     } catch (e) {
       skipped++;
       process.stderr.write(`  ⚠ skip ${story.id}: ${String(e.message).split("\n")[0]}\n`);
@@ -160,6 +196,7 @@ function extractFromDOM(props, ignoreList) {
     source: "storybook-computed",
     storyCount: stories.length,
     skipped,
+    skippedErrors,
     properties: {},
   };
   for (const [prop, vals] of Object.entries(agg)) {
@@ -172,7 +209,7 @@ function extractFromDOM(props, ignoreList) {
   const outPath = path.join(OUT_DIR, "computed-tokens.json");
   fs.writeFileSync(outPath, JSON.stringify(output, null, 2));
 
-  console.log(`\n\n✓ ${path.relative(ROOT, outPath)}  (${skipped} stories skipped)`);
+  console.log(`\n\n✓ ${path.relative(ROOT, outPath)}  (${skipped} stories skipped, ${skippedErrors} of those were render errors)`);
   for (const [prop, list] of Object.entries(output.properties)) {
     console.log(`  ${prop.padEnd(16)} ${list.length} distinct values`);
   }

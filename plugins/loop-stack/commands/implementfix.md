@@ -27,8 +27,13 @@ Apply the fix in code. Do not only suggest, describe, or plan—change the code 
 3. **Follow existing patterns and workspace rules**  
    Respect the project’s conventions, style, and any repo rule files or docs (e.g. `AGENTS.md`, `CLAUDE.md`, editor/agent rule directories). If `${commands.commitNoAttribution}` is set, avoid AI-revealing comments.
 
-4. **Verify**  
-   Run the project's checks on changed files (`${commands.lint}`, `${commands.typecheck}`, relevant `${commands.test}`) and fix any new issues.
+4. **Verify — the green gate**
+   Run `${commands.lint}` and `${commands.typecheck}` on the change, then execute
+   `.claude/skills/shared/green-gate.md`: the **full** unit suite and the **full** E2E suite green
+   after the final edit, each reported with its verbatim command and raw output. Targeted runs are
+   the iteration loop, not the gate. Fix anything red — never by weakening or skipping a test.
+   If a suite doesn't exist, say so and offer `scaffold-test-projects` (Gherkin + page objects +
+   typed web-element wrappers + hooks); an absent harness is reported, not silently skipped.
 
 ---
 
@@ -42,4 +47,4 @@ Apply the fix in code. Do not only suggest, describe, or plan—change the code 
 
 ## One-line prompt (for quick use)
 
-Implement the fix: apply the change in code, not just in text. Prefer edits in the relevant layer (app, tests, config) unless the issue requires another. Edit the right files, add or adjust logic as needed, follow the project’s patterns and workspace rules, and fix any new lint/test failures. Deliver a complete, mergeable change; if part of the fix is out of scope, say so and do what’s possible in this codebase. Optionally suggest a one-line git commit message for the fix.
+Implement the fix: apply the change in code, not just in text. Prefer edits in the relevant layer (app, tests, config) unless the issue requires another. Edit the right files, add or adjust logic as needed, follow the project’s patterns and workspace rules, and fix any new lint/test failures. Close with the green gate: all unit tests green and all E2E green (full suites, with the commands and output shown) — or, if a suite doesn’t exist, offer to scaffold one with page objects and typed web elements. Deliver a complete, mergeable change; if part of the fix is out of scope, say so and do what’s possible in this codebase. Optionally suggest a one-line git commit message for the fix.

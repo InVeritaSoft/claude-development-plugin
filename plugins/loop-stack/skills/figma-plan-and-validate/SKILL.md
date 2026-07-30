@@ -41,7 +41,9 @@ nodeId  = node-id query param, replace "-" with ":"
 
 Call the design tool's `get_design_context` on every node. If the response says "sparse metadata", call sub-layers individually by their IDs from the metadata output.
 
-Batch parallel calls in groups of 3–4 to stay within context limits.
+Batch parallel calls in groups of 3–4 for API sanity — **not** as a reason to trim the set. Audit **every** node; the context window is large (~1M) and the full design set fits. No representative subset, no "main screens only".
+
+**Linked spec pages — read in full.** When the ticket links Confluence or other spec pages, fetch each **whole** page (e.g. `getConfluencePage` full body) plus the ticket description and **all** comments — never an excerpt or first-section skim — and merge every AC item into the plan. A linked page left unread blocks the plan.
 
 **Document per node**:
 - Node name / screen type (dashboard, edit modal, wizard step, empty state)

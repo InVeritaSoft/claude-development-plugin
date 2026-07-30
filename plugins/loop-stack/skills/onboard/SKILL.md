@@ -11,6 +11,8 @@ Make the loop stack portable. Run this at setup and **re-run any time** — like
 
 Every other skill/agent/command/loop reads `.claude/stack.md` for these values. Nothing is hardcoded, so the same stack works in any repo. Anything left `none`/empty means "this project doesn't use it — skip those steps."
 
+**Tracker-adaptive.** A "team" here is a **project/repo** — one `.claude/stack.md` per repo, bound to whatever tracker that project uses. Onboard treats **Jira, GitHub Issues, and Linear as co-equal first-class paths**: it seeds tracker-appropriate idioms (key prefix, `myWorkQuery`, states, transition, `reporter` handoff) so downstream skills read the same `${issueTracker.*}` tokens no matter the tool. GitHub Issues uses `open`/`closed` + labels (no transition ids) and `reporter` = the issue author; Linear transitions by state name and `reporter` = the creator. See the tracker-adaptive table in `CONVENTIONS.md`.
+
 ## When to use
 
 - Bringing the loop stack to a new project for the first time.
@@ -52,11 +54,21 @@ Every other skill/agent/command/loop reads `.claude/stack.md` for these values. 
   read from `.claude/stack.md`). An existing `CLAUDE.md` is left untouched; merge from
   `skills/onboard/CLAUDE.template.md` if desired.
 - Point them at `launch-loop-stack` to start the autonomous loops, now driven by their config.
+- **No test harness?** If `${testing.e2e.runner}` or `${testing.unit.runner}` came out `none` (the project has
+  no E2E/unit project yet), point the user at **`scaffold-test-projects`** to bootstrap a Gherkin-driven
+  Playwright E2E project + a unit-tests project (page objects, typed web-element wrappers, hooks). After it
+  runs, re-run `onboard` so the new runners/dirs/tag convention land in `.claude/stack.md`.
 
 ## Contract for every other skill
 
 > Read `.claude/stack.md` at the start. Use its values; never assume a specific tool.
 > If a needed section is `none`/empty, **skip** those steps (don't ask, don't invent).
 > If `.claude/stack.md` is missing, tell the user to run `onboard` and stop.
+
+**Except testing.** `${testing.*}` set to `none` is surfaced, not skipped: every implementation ends
+with the full unit suite and the full E2E suite green, and an absent harness triggers the
+`scaffold-test-projects` offer (Gherkin + page objects + typed web-element wrappers + hooks). The
+rendered `## Testing` section of `stack.md` carries this line so every skill reading the config sees
+it; the rule itself lives in `skills/shared/green-gate.md`.
 
 See `CONVENTIONS.md` at the repo root for the full token → config mapping.

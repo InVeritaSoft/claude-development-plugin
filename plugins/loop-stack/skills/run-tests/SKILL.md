@@ -11,7 +11,7 @@ Runs appropriate test suites based on code changes and user requests.
 
 > **Read `.claude/stack.md` first; use its values; never assume a specific tool.** If a needed capability is `none`, skip those steps. If the config is missing, run the `onboard` skill and stop.
 
-All runners, commands, and locations come from config: the package manager + scripts in `${commands.*}`, the unit runner/locations in `${testing.unit.*}` (e.g. Vitest, Jest), the E2E runner/dir in `${testing.e2e.*}` (e.g. Playwright), and the project layout (`${backend.*}`, `${edge.*}`, `${frontend.apps}`). If a given test type is `none`, skip it.
+All runners, commands, and locations come from config: the package manager + scripts in `${commands.*}`, the unit runner/locations in `${testing.unit.*}` (e.g. Vitest, Jest), the E2E runner/dir in `${testing.e2e.*}` (e.g. Playwright), and the project layout (`${backend.*}`, `${edge.*}`, `${frontend.apps}`). If a given test type is `none`, there is nothing to run — say so and offer `scaffold-test-projects`; don't skip it silently (see the closing green gate below).
 
 ## When to Use
 
@@ -122,8 +122,24 @@ After running tests:
 - Test output is clear
 - Failures are properly reported
 
+## Closing green gate (after an implementation)
+
+The targeted runs above are the iteration loop. When the change is finished, the gate is the **full**
+unit suite plus the **full** E2E suite, both green, with the verbatim command and raw output — read
+`.claude/skills/shared/green-gate.md` and execute it. Two things it changes about the defaults here:
+
+- **No narrowing at the gate.** `--filter`, a path argument, or `--grep` on the issue tag is fine
+  while iterating; the closing run has none of them.
+- **A missing suite is surfaced, not skipped.** If `${testing.unit.runner}` or
+  `${testing.e2e.runner}` is `none` (or the dir holds no tests), offer to build it with
+  `scaffold-test-projects` — Gherkin `.feature` files, page objects, typed web-element wrappers,
+  hooks — and record the outcome as `suggested-scaffold`. This is the one place the config
+  contract's "skip when none" does not apply.
+
 ## Related skills
 
+- `shared/green-gate.md` — the closing full-suite gate (all units + all E2E green, or offer the scaffold).
+- `scaffold-test-projects` — build the suite when there isn't one (page objects + typed web elements + hooks).
 - `double-check-code` — end-to-end quality gate (build + lint + test + review); composes this skill.
 - `e2e-narrow-fail-focus-success` — use this when E2E tests are failing; do **not** try to triage E2E here.
 - `generate-tests-after-implementation` — add tests after a feature/bug before running here.

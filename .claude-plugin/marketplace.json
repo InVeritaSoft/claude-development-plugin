@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "dev-tools",
-  "version": "1.1.0",
-  "description": "Development tooling for Claude Code: the autonomous dev loop stack and CSS/design-drift auditing.",
+  "version": "1.3.1",
+  "description": "Development tooling for Claude Code: the autonomous dev loop stack, CSS/design-drift auditing, and mobile platform (iOS HIG + Material 3) guidelines.",
   "owner": {
     "name": "Mykhailo"
   },
@@ -10,8 +10,8 @@
     {
       "name": "loop-stack",
       "source": "./plugins/loop-stack",
-      "description": "Universal, config-driven autonomous dev loop stack: session crons that fix assigned bugs, verify against AC + deploys, review requested PRs, shepherd your own PRs to merge, repair failed deployments, sync fix-base branches, and post a daily standup report. Project specifics live in .claude/stack.md (written by the onboard skill).",
-      "version": "1.2.0",
+      "description": "Universal, config-driven autonomous dev loop stack: session crons that fix assigned bugs, verify against AC + deploys, review requested PRs, shepherd your own PRs to merge, repair failed deployments, sync fix-base branches, and post a daily standup report. Project specifics live in .claude/stack.md (written by the onboard skill). Optionally delegates shared disciplines (TDD, debugging, verification, code review) to the superpowers plugin when installed.",
+      "version": "1.4.0",
       "author": { "name": "Mykhailo" },
       "category": "development",
       "keywords": ["autonomous", "loops", "cron", "devfix", "pr-review", "ci", "jira", "workflow"]
@@ -20,10 +20,19 @@
       "name": "css-drift-auditor",
       "source": "./plugins/css-drift-auditor",
       "description": "Universal, framework-agnostic CSS/design-drift audit pipeline: maps components and raw HTML tags, renders components in Storybook, extracts post-cascade computed styles, and flags inconsistent values for tokenization.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": { "name": "Mykhailo" },
       "category": "development",
       "keywords": ["css", "design-tokens", "drift", "storybook", "audit", "consistency", "react", "angular"]
+    },
+    {
+      "name": "mobile-platform-guidelines",
+      "source": "./plugins/mobile-platform-guidelines",
+      "description": "Apple Human Interface Guidelines (HIG) and Android Material Design 3 rules for building native-feeling mobile UI: audits screens, components, navigation, permissions, and notifications against the relevant platform reference before implementation.",
+      "version": "1.0.0",
+      "author": { "name": "Mykhailo" },
+      "category": "development",
+      "keywords": ["mobile", "ios", "android", "hig", "material-design", "react-native", "expo", "ui", "accessibility"]
     }
   ]
 }

@@ -67,4 +67,5 @@ per domain, and never auto-merges. Values marked `"intentional": true` in
 
 `config/audit.config.json` (copied to `design-audit/audit.config.json` on first
 run): which properties to extract, values to ignore, clustering tolerances
-(`colorDistance`, `spacingTolerancePx`, `fontSizeTolerancePx`, `driftMaxUsage`).
+(`colorDistance`, `colorAlphaTolerance`, `spacingTolerancePx`,
+`fontSizeTolerancePx`, `driftMaxUsage`, `driftMaxUsageRatio`).

@@ -11,7 +11,11 @@ Generate comprehensive tests immediately after implementing code to verify corre
 
 > **Read `.claude/stack.md` first; use its values; never assume a specific tool.** If a needed capability is `none`, skip those steps. If the config is missing, run the `onboard` skill and stop.
 
-Use the configured runners and locations: unit runner `${testing.unit.runner}` (e.g. Vitest, Jest) at `${testing.unit.locations}`, E2E runner `${testing.e2e.runner}` (e.g. Playwright) at `${testing.e2e.dir}`, and the frontend stack in `${frontend.*}` (e.g. a React + Testing Library setup). Skip any test type whose runner is `none`.
+Use the configured runners and locations: unit runner `${testing.unit.runner}` (e.g. Vitest, Jest) at `${testing.unit.locations}`, E2E runner `${testing.e2e.runner}` (e.g. Playwright) at `${testing.e2e.dir}`, and the frontend stack in `${frontend.*}` (e.g. a React + Testing Library setup).
+
+> **No runner is not a skip.** If `${testing.unit.runner}` or `${testing.e2e.runner}` is `none` there is nowhere to put these tests — offer `scaffold-test-projects` first (Gherkin `.feature` files, page objects, typed web-element wrappers, hooks), then come back and generate. See `.claude/skills/shared/green-gate.md`.
+>
+> New E2E coverage binds to **page objects**, never to raw selectors inline: the scenario calls an intent method (`loginPage.login(email, password)`), the page object holds typed web elements, and the web-element wrapper is the only place a locator is touched.
 
 ## When to Use
 
@@ -97,13 +101,18 @@ describe('ComponentName', () => {
 ## Verification
 
 After generating tests:
-1. Run tests to ensure they pass
+1. Run the new tests to ensure they pass
 2. Verify test coverage is adequate
 3. Check tests follow project conventions
 4. Ensure tests are maintainable and readable
+5. **Close with the green gate** — `.claude/skills/shared/green-gate.md`: the full unit suite and the
+   full E2E suite green, not just the tests you just wrote. Fresh coverage that greens in isolation
+   but breaks a sibling suite is not done.
 
 ## Related skills
 
+- `shared/green-gate.md` — the closing gate: all units green + all E2E green, or offer the scaffold.
+- `scaffold-test-projects` — bootstrap the harness when there's no runner to generate into.
 - `run-tests` — execute the generated tests and broader suites.
 - `double-check-code` — full quality gate; composes this skill + `run-tests`.
 - `e2e-narrow-fail-focus-success` — when a newly-added E2E is red, triage there.
