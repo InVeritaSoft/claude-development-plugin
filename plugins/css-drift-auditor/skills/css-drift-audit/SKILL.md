@@ -60,7 +60,11 @@ dirs, package manager). Read it before continuing.
    during render (detected via page errors and known Storybook error-UI
    markers) are excluded rather than scraped, and counted separately in
    `skippedErrors` — a high count there usually means several components need
-   required-prop refinement in their generated story (Phase 1.4).
+   required-prop refinement in their generated story (Phase 1.4). The same
+   pass also records `gapCollapses`: any flex/grid container in a story that
+   declares a non-zero `gap` whose visible children still end up touching or
+   overlapping, measured via real bounding boxes, not computed style alone.
+   Toggle with `extract.gapCollapse.enabled` in `audit.config.json`.
 
 CHECKPOINT: surface the per-property distinct-value counts, plus `skipped` /
 `skippedErrors`, before analysis. A high `skippedErrors` count means the
@@ -79,6 +83,13 @@ cluster's canonical value and either used rarely in absolute terms
 default 15%) — the relative check is what catches systemic drift (a stale
 value used dozens of times, not just once or twice), which an absolute
 threshold alone misses.
+
+`drift-report.md` also has an unconditional **Collapsed layout gaps** section
+from `gapCollapses` — every container whose own declared spacing rule failed
+to hold. Unlike the clusters above, this is never filtered by
+`driftMaxUsage`/`driftMaxUsageRatio`: a container touching its own children
+is a defect regardless of how rarely it's rendered, so every instance is
+listed.
 
 There are two complementary drift surfaces — cross-reference both: the runtime
 surface (`computed-tokens.json`, what the cascade actually produced) and the

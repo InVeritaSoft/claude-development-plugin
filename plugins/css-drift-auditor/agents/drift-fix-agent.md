@@ -36,3 +36,9 @@ Rules:
   `fix(design): normalize <domain> to tokens`. Do NOT merge.
 - Report: number of replacements, files touched, and anything ambiguous you
   skipped and why.
+- Never touch `gapCollapses` entries, in any domain. A collapsed gap isn't a
+  value to swap for a token — the container's own declared spacing is being
+  defeated by something else (an ancestor rule, a specificity fight, a stray
+  `!important`), and finding that cause is an investigation, not a mechanical
+  replacement. Leave those for the user to diagnose by hand; report their
+  count so nothing silently drops off the list.

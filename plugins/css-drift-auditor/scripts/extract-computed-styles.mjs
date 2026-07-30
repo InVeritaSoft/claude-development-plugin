@@ -46,10 +46,12 @@ function loadConfig() {
       properties: ["color", "backgroundColor", "fontSize", "fontWeight", "fontFamily", "lineHeight", "borderRadius", "boxShadow", "padding", "margin", "gap"],
       ignoreValues: ["rgba(0, 0, 0, 0)", "none", "normal", "0px", "auto"],
       perStoryTimeoutMs: 8000,
+      gapCollapse: { enabled: true, maxOverlapPx: 0 },
     },
     output: { dir: "design-audit" },
   };
 }
+const GAP_CFG = { enabled: true, maxOverlapPx: 0, ...(config.extract.gapCollapse || {}) };
 
 async function getChromium() {
   // Resolve Playwright from the target project (cwd), not the plugin dir.
@@ -122,6 +124,51 @@ function extractFromDOM({ props, ignoreList }) {
   return out;
 }
 
+// Distinct drift surface from extractFromDOM's value histogram: that one asks
+// "is this computed value off the token scale?" — a statistical question,
+// tolerant of one-offs. This asks "does a container's OWN declared gap
+// actually hold?" — a binary defect. A flex/grid container with a non-zero
+// `gap` whose visible children still end up touching (or overlapping) is a
+// real regression regardless of how rare it is: an ancestor override, a
+// specificity fight, or a stray `gap: 0 !important` zeroed the spacing the
+// component itself asked for. No clustering tolerance applies — one instance
+// is exactly as real as a hundred.
+function detectGapCollapses({ maxOverlapPx }) {
+  const root = document.querySelector("#storybook-root") || document.querySelector("#root") || document.body;
+  const out = [];
+  for (const el of root.querySelectorAll("*")) {
+    const cs = getComputedStyle(el);
+    if (cs.display !== "flex" && cs.display !== "grid") continue;
+    if (!cs.gap || cs.gap === "0px") continue; // only containers that declare gap-based spacing at all
+    if (el.children.length < 2) continue;
+
+    const kids = Array.from(el.children).filter((k) => {
+      const r = k.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    });
+    if (kids.length < 2) continue;
+
+    const vertical = cs.flexDirection === "column" || cs.display === "grid";
+    let collapsedAt = null;
+    for (let i = 0; i < kids.length - 1; i++) {
+      const a = kids[i].getBoundingClientRect();
+      const b = kids[i + 1].getBoundingClientRect();
+      const spacing = vertical ? b.top - a.bottom : b.left - a.right;
+      if (spacing <= maxOverlapPx) { collapsedAt = spacing; break; }
+    }
+    if (collapsedAt !== null) {
+      out.push({
+        tag: el.tagName.toLowerCase(),
+        className: el.className && el.className.toString ? el.className.toString().trim().slice(0, 120) : "",
+        declaredGap: cs.gap,
+        childCount: kids.length,
+        actualSpacingPx: Math.round(collapsedAt * 100) / 100,
+      });
+    }
+  }
+  return out;
+}
+
 (async () => {
   const chromium = await getChromium();
   const index = await loadStoryIndex();
@@ -163,6 +210,22 @@ function extractFromDOM({ props, ignoreList }) {
     }
   };
 
+  // Keyed by tag+className+declaredGap, not by story — the same component
+  // rendering across several stories should count as one drift site, not one
+  // per story that happened to hit it.
+  const gapAgg = {};
+  const mergeGapCollapses = (storyId, title, list) => {
+    for (const c of list) {
+      const key = `${c.tag}\u0000${c.className}\u0000${c.declaredGap}`;
+      const rec = (gapAgg[key] = gapAgg[key] || {
+        tag: c.tag, className: c.className, declaredGap: c.declaredGap,
+        count: 0, stories: new Set(), components: new Set(), worstSpacingPx: c.actualSpacingPx,
+      });
+      rec.count++; rec.stories.add(storyId); rec.components.add(title);
+      if (c.actualSpacingPx < rec.worstSpacingPx) rec.worstSpacingPx = c.actualSpacingPx;
+    }
+  };
+
   const base = STATIC_DIR ? `file://${path.join(ROOT, STATIC_DIR)}` : SB_URL;
   let done = 0, skipped = 0, skippedErrors = 0;
   for (const story of stories) {
@@ -181,6 +244,10 @@ function extractFromDOM({ props, ignoreList }) {
       } else {
         const dom = await page.evaluate(extractFromDOM, { props: PROPS, ignoreList: IGNORE });
         merge(story.id, story.title, dom);
+        if (GAP_CFG.enabled) {
+          const collapses = await page.evaluate(detectGapCollapses, { maxOverlapPx: GAP_CFG.maxOverlapPx });
+          mergeGapCollapses(story.id, story.title, collapses);
+        }
       }
     } catch (e) {
       skipped++;
@@ -205,6 +272,14 @@ function extractFromDOM({ props, ignoreList }) {
       .sort((a, b) => b.count - a.count);
   }
 
+  output.gapCollapses = Object.values(gapAgg)
+    .map((rec) => ({
+      tag: rec.tag, className: rec.className, declaredGap: rec.declaredGap,
+      count: rec.count, stories: rec.stories.size, worstSpacingPx: rec.worstSpacingPx,
+      components: [...rec.components].sort(),
+    }))
+    .sort((a, b) => b.count - a.count);
+
   fs.mkdirSync(OUT_DIR, { recursive: true });
   const outPath = path.join(OUT_DIR, "computed-tokens.json");
   fs.writeFileSync(outPath, JSON.stringify(output, null, 2));
@@ -212,6 +287,9 @@ function extractFromDOM({ props, ignoreList }) {
   console.log(`\n\n✓ ${path.relative(ROOT, outPath)}  (${skipped} stories skipped, ${skippedErrors} of those were render errors)`);
   for (const [prop, list] of Object.entries(output.properties)) {
     console.log(`  ${prop.padEnd(16)} ${list.length} distinct values`);
+  }
+  if (GAP_CFG.enabled) {
+    console.log(`  ${"gapCollapses".padEnd(16)} ${output.gapCollapses.length} distinct container(s) with a collapsed gap`);
   }
   console.log("");
 })();

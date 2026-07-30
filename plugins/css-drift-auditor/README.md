@@ -33,6 +33,22 @@ Adding Vue or Svelte is a new file in `parsers/` registered in `element-map.mjs`
 
 Drift lives in two places, and the plugin captures both. `element-map.mjs` parses every JSX file into a tree that keeps the distinction between components and raw HTML tags — because pages are a mix of the two, and raw `<div>`/`<button>`/`<h1>` tags carrying ad-hoc `className`, inline styles, or Tailwind arbitrary values (`bg-[#2e3440]`) are the **source-level** drift surface (`styledHtmlTags`). `extract-computed-styles.mjs` reads the **runtime** surface — the resolved pixel values after the cascade. A value flagged in both is high-confidence drift; a raw tag with an arbitrary value is a prime candidate to tokenize or lift into a component.
 
+## Collapsed layout gaps
+
+A third, distinct check runs alongside the value-histogram extraction: for
+every flex/grid container in each rendered story that declares a non-zero
+`gap`, `extract-computed-styles.mjs` measures the actual on-screen spacing
+between its visible children via `getBoundingClientRect()`. If adjacent
+children end up touching or overlapping despite the declared gap — an
+ancestor override, a specificity fight, or a stray zeroed gap defeated the
+component's own spacing rule — it's flagged in `computed-tokens.json` under
+`gapCollapses` and surfaced as its own unconditional section in
+`drift-report.md`. This is a different kind of check from the clustering
+above: clustering asks "is this value off-trend", tolerant of rare one-offs;
+a collapsed gap is a binary defect, so every instance is reported regardless
+of how often it occurs. Toggle with `extract.gapCollapse.enabled` in
+`audit.config.json`.
+
 ## Install
 
 Unzip into your Claude Code plugins directory, or install the `.plugin` file
@@ -51,8 +67,8 @@ Per-project prerequisites (Claude will prompt before installing):
 | `project-map.mjs` | component catalog + coverage + routes | `design-audit/project-map.json` |
 | `element-map.mjs --trees` | mixed html+component tree (React + Angular), flags styled raw tags | `design-audit/element-map.json` |
 | `generate-stories.mjs --write` | scaffold stories for uncovered components | `*.stories.*` |
-| `extract-computed-styles.mjs` | **render + read computed styles** | `design-audit/computed-tokens.json` |
-| `analyze-drift.mjs` | cluster + flag outliers | `design-audit/drift-report.md`, `suggested-tokens.json` |
+| `extract-computed-styles.mjs` | **render + read computed styles**, plus per-container gap-collapse geometry | `design-audit/computed-tokens.json` |
+| `analyze-drift.mjs` | cluster + flag outliers, plus collapsed-gap section | `design-audit/drift-report.md`, `suggested-tokens.json` |
 
 ## Workflow
 
@@ -68,4 +84,7 @@ per domain, and never auto-merges. Values marked `"intentional": true` in
 `config/audit.config.json` (copied to `design-audit/audit.config.json` on first
 run): which properties to extract, values to ignore, clustering tolerances
 (`colorDistance`, `colorAlphaTolerance`, `spacingTolerancePx`,
-`fontSizeTolerancePx`, `driftMaxUsage`, `driftMaxUsageRatio`).
+`fontSizeTolerancePx`, `driftMaxUsage`, `driftMaxUsageRatio`), and
+`extract.gapCollapse` (`enabled`, `maxOverlapPx` — the actual-spacing
+threshold at or below which a declared gap counts as collapsed; `0` by
+default, raise it if you want to also catch near-misses).

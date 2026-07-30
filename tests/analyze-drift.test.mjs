@@ -28,6 +28,22 @@ function analyze(properties, clustering) {
   return { dir, ...res, tokens: readJSON(dir, "design-audit/suggested-tokens.json"), report: read(dir, "design-audit/drift-report.md") };
 }
 
+/** Same as analyze(), but computed-tokens.json also carries gapCollapses from extract-computed-styles.mjs. */
+function analyzeWithGaps(gapCollapses, properties = {}) {
+  const dir = tmpProject({
+    "design-audit/computed-tokens.json": { storyCount: 12, properties, gapCollapses },
+  });
+  const res = runScript(ANALYZE_DRIFT, { cwd: dir });
+  assert.equal(res.status, 0, `analyze-drift failed: ${res.all}`);
+  return { dir, ...res, tokens: readJSON(dir, "design-audit/suggested-tokens.json"), report: read(dir, "design-audit/drift-report.md") };
+}
+
+const gapCollapse = (overrides = {}) => ({
+  tag: "div", className: "card__row", declaredGap: "8px",
+  count: 3, stories: 2, worstSpacingPx: -2, components: ["Card"],
+  ...overrides,
+});
+
 describe("analyze-drift outputs", () => {
   test("emits a report and a suggested-tokens file", () => {
     const { report, tokens } = analyze({ color: [val("rgb(0, 0, 0)", 40), val("rgb(4, 4, 4)", 1)] });
@@ -126,5 +142,42 @@ describe("analyze-drift config", () => {
     const properties = { color: [val("rgb(0, 0, 0)", 100), val("rgb(10, 10, 10)", 1)] };
 
     assert.equal(analyze(properties, { colorDistance: 5 }).tokens.driftCount, 0, "too far apart to be drift");
+  });
+});
+
+describe("analyze-drift gap collapses", () => {
+  test("reports a collapsed gap unconditionally, however rarely it occurs", () => {
+    const { tokens, report } = analyzeWithGaps([gapCollapse({ count: 1, stories: 1 })]);
+
+    assert.equal(tokens.gapCollapses.length, 1, "a single occurrence is still reported — no usage threshold applies");
+    assert.equal(tokens.gapCollapses[0].tag, "div");
+    assert.match(report, /## Collapsed layout gaps/);
+    assert.match(report, /card__row/);
+    assert.match(report, /8px/);
+  });
+
+  test("does not fold gap collapses into the clustered drift count", () => {
+    const { tokens } = analyzeWithGaps(
+      [gapCollapse()],
+      { color: [val("rgb(0, 0, 0)", 40), val("rgb(4, 4, 4)", 1)] },
+    );
+
+    assert.equal(tokens.driftCount, 1, "driftCount is only the clustered groups");
+    assert.equal(tokens.gapCollapses.length, 1, "gapCollapses is tracked separately");
+  });
+
+  test("reports no collapses cleanly when none occurred", () => {
+    const { tokens, report } = analyzeWithGaps([]);
+
+    assert.equal(tokens.gapCollapses.length, 0);
+    assert.match(report, /No collapsed gaps found/);
+  });
+
+  test("omits gapCollapses gracefully when the extractor didn't produce any (older data)", () => {
+    const dir = tmpProject({ "design-audit/computed-tokens.json": { storyCount: 12, properties: {} } });
+    const res = runScript(ANALYZE_DRIFT, { cwd: dir });
+
+    assert.equal(res.status, 0, `analyze-drift failed: ${res.all}`);
+    assert.deepEqual(readJSON(dir, "design-audit/suggested-tokens.json").gapCollapses, []);
   });
 });

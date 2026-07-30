@@ -204,13 +204,31 @@ for (const g of groups) {
   }
 }
 
-md += `---\n\n**${totalDrift} drift values flagged.** ${gridViolations.length} off-grid values flagged against the [${gridCfg.scale.join(", ")}] scale. Mark intentional one-offs with \`"intentional": true\` in suggested-tokens.json before running fix agents.\n`;
+// Collapsed layout gaps are a distinct surface from the clustering above: a
+// container's OWN declared `gap` failing to hold isn't a statistical outlier
+// to weigh against usage counts — it's a binary defect, so every instance is
+// reported, never filtered by driftMaxUsage/driftMaxUsageRatio.
+const gapCollapses = data.gapCollapses || [];
+md += `## Collapsed layout gaps\n\n`;
+md += `A container that declares \`gap\` for spacing, but whose visible children still end up touching or overlapping — an ancestor override, a specificity fight, or a stray zeroed gap defeated the spacing the component itself asked for. Unlike the groups above, every instance here is flagged regardless of how rarely it occurs: this isn't "is this value off-trend", it's "did the container's own rule actually take effect".\n\n`;
+if (gapCollapses.length) {
+  const gLines = gapCollapses.map((g) => {
+    const used = g.components.slice(0, 3).join(", ") + (g.components.length > 3 ? "…" : "");
+    return `| \`<${g.tag}>\` \`${g.className || "(no class)"}\` | \`${g.declaredGap}\` | ${g.worstSpacingPx}px | ${g.count}× / ${g.stories} stor${g.stories === 1 ? "y" : "ies"} | ${used} |`;
+  });
+  md += `| Container | Declared gap | Actual spacing | Seen | Used by |\n|---|---|---|---|---|\n${gLines.join("\n")}\n\n`;
+} else {
+  md += `_No collapsed gaps found._\n\n`;
+}
+
+md += `---\n\n**${totalDrift} drift values flagged.** ${gridViolations.length} off-grid values flagged against the [${gridCfg.scale.join(", ")}] scale. ${gapCollapses.length} collapsed layout gap(s) flagged. Mark intentional one-offs with \`"intentional": true\` in suggested-tokens.json before running fix agents.\n`;
 
 const suggestedOut = {
   generatedAt: new Date().toISOString(),
   driftCount: totalDrift,
   replacements: [...suggested.values()],
   gridViolations,
+  gapCollapses,
 };
 
 fs.writeFileSync(path.join(OUT, "drift-report.md"), md);
@@ -219,4 +237,5 @@ fs.writeFileSync(path.join(OUT, "suggested-tokens.json"), JSON.stringify(suggest
 console.log(`\n✓ design-audit/drift-report.md`);
 console.log(`✓ design-audit/suggested-tokens.json`);
 console.log(`\n  ${totalDrift} drift values flagged across ${groups.length} token groups`);
-console.log(`  ${gridViolations.length} off-grid values flagged against the [${gridCfg.scale.join(", ")}] scale\n`);
+console.log(`  ${gridViolations.length} off-grid values flagged against the [${gridCfg.scale.join(", ")}] scale`);
+console.log(`  ${gapCollapses.length} collapsed layout gap(s) flagged\n`);

@@ -14,7 +14,8 @@
       "rgba(0, 0, 0, 0)", "transparent", "none", "normal", "auto",
       "0px", "rgb(0, 0, 0)"
     ],
-    "perStoryTimeoutMs": 8000
+    "perStoryTimeoutMs": 8000,
+    "gapCollapse": { "enabled": true, "maxOverlapPx": 0 }
   },
   "clustering": {
     "colorDistance": 24,
