@@ -133,13 +133,60 @@ function extractFromDOM({ props, ignoreList }) {
 // specificity fight, or a stray `gap: 0 !important` zeroed the spacing the
 // component itself asked for. No clustering tolerance applies — one instance
 // is exactly as real as a hundred.
+//
+// KEPT IN LOCKSTEP with gap-collapse-logic.mjs's findGapCollapse — this copy can't import it
+// because a function passed to Playwright's page.evaluate() is serialized standalone, with no
+// access to modules outside its own closure. gap-collapse-logic.mjs is the unit-tested canonical
+// definition; changes here must be mirrored there (and vice versa).
 function detectGapCollapses({ maxOverlapPx }) {
   const root = document.querySelector("#storybook-root") || document.querySelector("#root") || document.body;
   const out = [];
+
+  function findGapCollapse(rects, isColumnLike) {
+    if (rects.length < 2) return null;
+    if (isColumnLike) {
+      const sorted = [...rects].sort((a, b) => a.top - b.top);
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const spacing = sorted[i + 1].top - sorted[i].bottom;
+        if (spacing <= maxOverlapPx) return { spacing };
+      }
+      return null;
+    }
+    // Row-direction (or grid): children can wrap onto multiple visual lines, so group by vertical
+    // overlap FIRST — comparing DOM-adjacent children's horizontal position without grouping
+    // flags every ordinary wrapped row as a false collapse (line 2's first item sits far left of
+    // line 1's last item; that's wrapping, not a collapsed gap).
+    const lines = [];
+    for (const r of rects) {
+      let line = lines.find((L) => r.top < L.bottom && r.bottom > L.top);
+      if (!line) { line = { top: r.top, bottom: r.bottom, items: [] }; lines.push(line); }
+      line.items.push(r);
+      line.top = Math.min(line.top, r.top);
+      line.bottom = Math.max(line.bottom, r.bottom);
+    }
+    for (const line of lines) {
+      line.items.sort((a, b) => a.left - b.left);
+      for (let i = 0; i < line.items.length - 1; i++) {
+        const spacing = line.items[i + 1].left - line.items[i].right;
+        if (spacing <= maxOverlapPx) return { spacing };
+      }
+    }
+    lines.sort((a, b) => a.top - b.top);
+    for (let i = 0; i < lines.length - 1; i++) {
+      const spacing = lines[i + 1].top - lines[i].bottom;
+      if (spacing <= maxOverlapPx) return { spacing };
+    }
+    return null;
+  }
+
   for (const el of root.querySelectorAll("*")) {
     const cs = getComputedStyle(el);
     if (cs.display !== "flex" && cs.display !== "grid") continue;
-    if (!cs.gap || cs.gap === "0px") continue; // only containers that declare gap-based spacing at all
+    // "normal" is the initial value getComputedStyle reports when NO gap was ever declared — not
+    // the same as an explicit `gap: 0`. Without excluding it, every flex container Material/any
+    // component library sets for icon+label centering (with no gap of its own) gets treated as a
+    // "declared gap", and its internal overlapping pseudo-elements read as a false collapse.
+    if (!cs.gap || cs.gap === "0px" || cs.gap === "normal") continue;
     if (el.children.length < 2) continue;
 
     const kids = Array.from(el.children).filter((k) => {
@@ -148,21 +195,15 @@ function detectGapCollapses({ maxOverlapPx }) {
     });
     if (kids.length < 2) continue;
 
-    const vertical = cs.flexDirection === "column" || cs.display === "grid";
-    let collapsedAt = null;
-    for (let i = 0; i < kids.length - 1; i++) {
-      const a = kids[i].getBoundingClientRect();
-      const b = kids[i + 1].getBoundingClientRect();
-      const spacing = vertical ? b.top - a.bottom : b.left - a.right;
-      if (spacing <= maxOverlapPx) { collapsedAt = spacing; break; }
-    }
-    if (collapsedAt !== null) {
+    const isColumnLike = cs.flexDirection === "column" || cs.flexDirection === "column-reverse";
+    const result = findGapCollapse(kids.map((k) => k.getBoundingClientRect()), isColumnLike);
+    if (result) {
       out.push({
         tag: el.tagName.toLowerCase(),
         className: el.className && el.className.toString ? el.className.toString().trim().slice(0, 120) : "",
         declaredGap: cs.gap,
         childCount: kids.length,
-        actualSpacingPx: Math.round(collapsedAt * 100) / 100,
+        actualSpacingPx: Math.round(result.spacing * 100) / 100,
       });
     }
   }
