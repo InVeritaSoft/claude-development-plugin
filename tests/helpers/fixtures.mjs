@@ -12,6 +12,7 @@ export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url
 export const ONBOARD = path.join(REPO_ROOT, "plugins/loop-stack/skills/onboard/onboard.mjs");
 export const ANALYZE_DRIFT = path.join(REPO_ROOT, "plugins/css-drift-auditor/scripts/analyze-drift.mjs");
 export const DETECT_FRAMEWORK = path.join(REPO_ROOT, "plugins/css-drift-auditor/scripts/detect-framework.mjs");
+export const PROJECT_MAP = path.join(REPO_ROOT, "plugins/css-drift-auditor/scripts/project-map.mjs");
 
 const tmpDirs = [];
 

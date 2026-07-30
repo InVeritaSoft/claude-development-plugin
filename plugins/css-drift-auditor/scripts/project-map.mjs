@@ -28,7 +28,12 @@ const files = [...new Set(dirs.flatMap((d) => walk(d)))];
 
 const isStory = (f) => /\.stories\.[jt]sx?$|\.stories\.(vue|svelte)$/.test(f);
 const isCode = (f) => exts.some((x) => f.endsWith(x)) || f.endsWith(".vue") || f.endsWith(".svelte");
+// PascalCase-filename is a React/Vue/Svelte convention (Button.tsx); Angular components are
+// kebab-case files (dashboard.component.ts) carrying a PascalCase *class* instead — applying the
+// filename check there discards every component and silently reports zero, framework-wide.
+const isAngular = fw.framework === "angular";
 const isPascal = (f) => /^[A-Z]/.test(path.basename(f).replace(/\.[^.]+$/, ""));
+const isAngularComponent = (f) => f.endsWith(".component.ts");
 
 const storyNames = new Set(
   files.filter(isStory).map((f) =>
@@ -46,10 +51,23 @@ function importCount(f) {
   } catch { return 0; }
 }
 
+// Angular's catalog name is the exported class (what a story file names itself after), not the
+// kebab-case filename.
+function componentName(f) {
+  if (isAngular) {
+    try {
+      const m = fs.readFileSync(f, "utf8").match(/export\s+class\s+(\w+)/);
+      if (m) return m[1];
+    } catch {}
+  }
+  return path.basename(f).replace(/\.[^.]+$/, "");
+}
+
 const components = files
-  .filter((f) => isCode(f) && !isStory(f) && isPascal(f) && !/\.(test|spec|d)\./.test(f))
+  .filter((f) => isCode(f) && !isStory(f) && !/\.(test|spec|d)\./.test(f) &&
+    (isAngular ? isAngularComponent(f) : isPascal(f)))
   .map((f) => {
-    const name = path.basename(f).replace(/\.[^.]+$/, "");
+    const name = componentName(f);
     return { name, file: path.relative(ROOT, f), hasStory: storyNames.has(name), localImports: importCount(f) };
   })
   .sort((a, b) => a.name.localeCompare(b.name));

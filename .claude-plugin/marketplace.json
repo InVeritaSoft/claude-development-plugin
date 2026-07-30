@@ -20,7 +20,7 @@
       "name": "css-drift-auditor",
       "source": "./plugins/css-drift-auditor",
       "description": "Universal, framework-agnostic CSS/design-drift audit pipeline: maps components and raw HTML tags, renders components in Storybook, extracts post-cascade computed styles, and flags inconsistent values for tokenization.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "author": { "name": "Mykhailo" },
       "category": "development",
       "keywords": ["css", "design-tokens", "drift", "storybook", "audit", "consistency", "react", "angular"]
