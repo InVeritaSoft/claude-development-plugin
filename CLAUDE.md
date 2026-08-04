@@ -52,7 +52,7 @@ repo. To understand any file here, read it alongside two references:
   keep this contract: *use config values, never assume a specific tool; if a capability is `none`,
   skip that step — don't ask, don't invent.*
 - **`MANIFEST.md`** — the loop roster (FIX / VERIFY / STORY-VERIFY / PR-REVIEW / DEPLOY-FIX /
-  PR-SHEPHERD / SYNC-INTEGRATION / DAILY-REPORT), their cron cadences, and the layout.
+  PR-SHEPHERD / SYNC-INTEGRATION / E2E-SWEEP / DAILY-REPORT), their cron cadences, and the layout.
 
 Key flows:
 
