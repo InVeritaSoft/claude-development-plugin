@@ -28,13 +28,15 @@ code, PRs, branches, or tracker state.** You own this file — edit it, then re-
    - **Verified / handed off:** tracker issues I transitioned in the last 24h (via `${issueTracker.myWorkQuery}` + each issue's changelog, or my comments posted in the window).
    - **Reviews posted:** entries in `.claude/loops/state/pr-review-done.txt` (compare against yesterday if a snapshot exists; otherwise report the file's PRs still open).
    - **Deploy incidents:** entries in `.claude/loops/state/deploy-fix-done.txt` from the window (`# fixed via PR` vs `# infra`).
+   - **Suite health:** the Coverage + Confirmed regressions sections of `.claude/loops/state/e2e-sweep-report.md` — condensed to one line (scenarios swept in the last 24h, confirmed e2e regressions).
    - **PARKED — the part that must not rot:** every line of `.claude/loops/state/my-bugs-verify-parked.txt`,
-     `.claude/loops/state/my-stories-verify-parked.txt`, every `# needs-human` line in `.claude/loops/state/pr-shepherd-done.txt`, and every line of `.claude/loops/state/sync-integration-blocked.txt` (fix-base branches a human must promote by hand).
+     `.claude/loops/state/my-stories-verify-parked.txt`, every `# needs-human` line in `.claude/loops/state/pr-shepherd-done.txt`, every line of `.claude/loops/state/sync-integration-blocked.txt` (fix-base branches a human must promote by hand), and every line of `.claude/loops/state/e2e-sweep-blocked.txt` (sweeps skipped because the app wasn't up).
 2. **Compose** a short, human-voice summary (plain sentences, no jargon-dump):
    - **Done** — merged PRs, issues verified/handed to QA.
    - **In flight** — open PRs and what each is waiting on (review / checks / conflict).
    - **Blocked / parked** — each parked item with its one-line reason. This section is the loop's reason to exist.
    - **Incidents** — deploy failures handled or reported as infra.
+   - **Suite health** — one line from the e2e sweep: coverage + confirmed regressions.
 3. **Deliver:**
    - `${reporting.destination}` set (e.g. a tracker page / issue comment / channel) → post the summary there.
    - **Always** also send a `PushNotification` with the one-line headline, e.g.
@@ -56,3 +58,4 @@ code, PRs, branches, or tracker state.** You own this file — edit it, then re-
 - `.claude/loops/my-bugs-in-sprint-devfix.md` — writes the park files this loop surfaces.
 - `.claude/loops/pr-shepherd.md` — writes the `# needs-human` entries this loop surfaces.
 - `.claude/loops/deploy-failure-fix.md`, `.claude/loops/pr-review.md` — activity sources.
+- `.claude/loops/e2e-sweep.md` — writes the rolling suite-health report and the blocked lines this loop condenses.

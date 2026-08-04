@@ -1,6 +1,6 @@
 ---
 name: launch-loop-stack
-description: Launch the full autonomous loop stack for the current session — the FIX, VERIFY, STORY-VERIFY, PR-REVIEW, DEPLOY-FIX, PR-SHEPHERD, SYNC-INTEGRATION, and DAILY-REPORT recurring ticks — by creating their session crons in one shot. Use when the user says "launch the loops", "start the loop stack", "set up the my-work loops", "run the autonomous loops", or after a session restart where the prior crons were lost. Each loop is one-action-per-tick, reads .claude/stack.md for all project specifics, and never overrides branch protection. Full per-loop specs live in .claude/loops/.
+description: Launch the full autonomous loop stack for the current session — the FIX, VERIFY, STORY-VERIFY, PR-REVIEW, DEPLOY-FIX, PR-SHEPHERD, SYNC-INTEGRATION, E2E-SWEEP, and DAILY-REPORT recurring ticks — by creating their session crons in one shot. Use when the user says "launch the loops", "start the loop stack", "set up the my-work loops", "run the autonomous loops", or after a session restart where the prior crons were lost. Each loop is one-action-per-tick, reads .claude/stack.md for all project specifics, and never overrides branch protection. Full per-loop specs live in .claude/loops/.
 ---
 
 # Launch Loop Stack
@@ -15,7 +15,8 @@ Create the session-scoped recurring crons that drive the autonomous **"my work i
 > Only register loops the config supports: skip DEPLOY-FIX when `${ci.deployWorkflows}` is empty; skip
 > the e2e gate when `${testing.e2e.runner}` is `none`; skip PR-REVIEW only when the VCS host has no review-request concept (reviewer identity is `@me`, not a committed handle);
 > skip PR-SHEPHERD when the VCS host has no authenticated-user concept (identity is `@me` — the authenticated `gh` user, never a committed username, so shared config works for every team member);
-> skip SYNC-INTEGRATION when `${vcs.fixBaseBranches}` is empty or every fix base equals its env branch.
+> skip SYNC-INTEGRATION when `${vcs.fixBaseBranches}` is empty or every fix base equals its env branch;
+> skip E2E-SWEEP when `${testing.e2e.runner}` is `none`.
 > DAILY-REPORT always applies (push notification needs no config; `${reporting.destination}` is optional).
 
 | Loop | Cadence | Cron expression | Spec |
@@ -27,6 +28,7 @@ Create the session-scoped recurring crons that drive the autonomous **"my work i
 | **DEPLOY-FIX** | every 10 min at :04/:14/… | `4,14,24,34,44,54 * * * *` | `.claude/loops/deploy-failure-fix.md` |
 | **PR-SHEPHERD** | every 10 min at :06/:16/… | `6,16,26,36,46,56 * * * *` | `.claude/loops/pr-shepherd.md` |
 | **SYNC-INTEGRATION** | twice hourly at :09/:39 | `9,39 * * * *` | `.claude/loops/sync-integration.md` |
+| **E2E-SWEEP** | every 20 min at :11/:31/:51 | `11,31,51 * * * *` | `.claude/loops/e2e-sweep.md` |
 | **DAILY-REPORT** | weekdays 16:59, once | `59 16 * * 1-5` | `.claude/loops/daily-report.md` |
 
 These are **session-only** (auto-expire after 7 days, stop when the session ends). They never force-merge or override branch protection.
@@ -170,13 +172,30 @@ Autonomous SYNC-INTEGRATION TICK (any time, session active). First read .claude/
 5. Return to the configured base branch, leave the tree clean. One pair per tick. Never force-push, never override protection. Session-only.
 ```
 
-### Loop 8 — DAILY-REPORT  (`cron: 59 16 * * 1-5`, recurring)
+### Loop 8 — E2E-SWEEP  (`cron: 11,31,51 * * * *`, recurring) — skip if ${testing.e2e.runner} is none
+
+```
+Autonomous E2E-SWEEP TICK (any time, session active). First read .claude/stack.md. Run ONE SMALL, TIME-BOXED BATCH of e2e scenarios picked round-robin, then rebuild the rolling suite-health report. Runs tests + writes .claude/loops/state/ only — never edits code, tests, PRs, branches, or tracker state. Full spec: .claude/loops/e2e-sweep.md
+
+1. ENV PROBE — never start or stop services. Resolve the base URL (${testing.e2e.baseUrl}, else the baseURL/webServer.url in the runner's config) and probe it (curl --max-time 3). Unreachable → append "<ISO> # env down: <url>" to .claude/loops/state/e2e-sweep-blocked.txt and STOP.
+2. Overlap guard: `git status --porcelain` over source/test dirs shows ANY change other than .claude/scheduled_tasks.lock → STOP.
+3. INVENTORY: in ${testing.e2e.dir}, run ${testing.e2e.bddStep} then list scenarios with the runner (e.g. `npx playwright test --list --reporter=json`); if it can't list, parse "Scenario:"/"Scenario Outline:" from the feature/spec files. Scenario id = "<file path>::<scenario name>". Drop health records whose id is no longer in the inventory.
+4. SELECT the batch: order never-run first, then least-recently-run (skipping ids already in .claude/loops/state/e2e-sweep-cursor.txt). Add scenarios while the sum of their stored median durations is under the 5-MINUTE BUDGET (unknown = 60s); always take at least one. Cursor covers everything → clear it, start a new pass.
+5. RUN only those scenarios, filtered by title through the runner's grep (e.g. `npx playwright test --grep "<escaped title>"`), hard timeout at the budget. Timed out → status "timeout", not a failure. Append the run ids to the cursor file.
+6. TRIAGE each failure: re-run that scenario ONCE alone (budget permitting) — passes → "flake", fails again → "confirmed". Matches an env/infra signature in ${recoveryNotes} → NOT a failure: record in e2e-sweep-blocked.txt and STOP.
+7. UPDATE .claude/loops/state/e2e-sweep-health.json per scenario: id, lastRun, status (pass/confirmed/flake/timeout), durationMs + rolling median, normalized errorSignature, consecutiveFails, flipCount, lastGreen, runs.
+8. REBUILD .claude/loops/state/e2e-sweep-report.md from that file (always a rebuild, never appended): Coverage (run in last 24h / total + 5 stalest) · Confirmed regressions (signature, last green, consecutive fails) · Flakes by flipCount · Slowest by median · Last tick summary.
+9. NOTIFY ONLY ON A FLIP: any scenario that went pass → confirmed since its previous record → one PushNotification ("e2e: <scenario> regressed (last green <when>)", collapsed to a count if several). Greens, known-still-failing, flakes and stale coverage stay silent in the report.
+Leave the working tree clean. One batch per tick. Session-only.
+```
+
+### Loop 9 — DAILY-REPORT  (`cron: 59 16 * * 1-5`, recurring)
 
 ```
 Autonomous DAILY-REPORT TICK (once per weekday, end of day). First read .claude/stack.md. READ-ONLY + one notification — never changes code, PRs, branches, or tracker state. Full spec: .claude/loops/daily-report.md
 
-1. Gather the last 24h: merged PRs (`gh pr list --state merged --author "@me" --search "merged:>=<24h-ago>"`); my open PRs + what each waits on (checks/review/conflict); tracker issues I transitioned or commented in the window (via ${issueTracker.myWorkQuery} + changelogs); reviews posted (.claude/loops/state/pr-review-done.txt); deploy incidents (.claude/loops/state/deploy-fix-done.txt); and ALL PARKED items — every line of .claude/loops/state/my-bugs-verify-parked.txt, .claude/loops/state/my-stories-verify-parked.txt, every "# needs-human" line in .claude/loops/state/pr-shepherd-done.txt, and every line of .claude/loops/state/sync-integration-blocked.txt.
-2. Compose a short human-voice standup summary: Done (merged/verified) · In flight (open PRs + blocker) · Blocked/parked (each with its one-line reason — this section is the loop's reason to exist) · Incidents (deploy fixes/infra).
+1. Gather the last 24h: merged PRs (`gh pr list --state merged --author "@me" --search "merged:>=<24h-ago>"`); my open PRs + what each waits on (checks/review/conflict); tracker issues I transitioned or commented in the window (via ${issueTracker.myWorkQuery} + changelogs); reviews posted (.claude/loops/state/pr-review-done.txt); deploy incidents (.claude/loops/state/deploy-fix-done.txt); and ALL PARKED items — every line of .claude/loops/state/my-bugs-verify-parked.txt, .claude/loops/state/my-stories-verify-parked.txt, every "# needs-human" line in .claude/loops/state/pr-shepherd-done.txt, every line of .claude/loops/state/sync-integration-blocked.txt, and every line of .claude/loops/state/e2e-sweep-blocked.txt. Also read the Coverage + Confirmed regressions sections of .claude/loops/state/e2e-sweep-report.md for a one-line suite-health headline.
+2. Compose a short human-voice standup summary: Done (merged/verified) · In flight (open PRs + blocker) · Blocked/parked (each with its one-line reason — this section is the loop's reason to exist) · Incidents (deploy fixes/infra) · Suite health (one line: coverage in the last 24h + confirmed e2e regressions).
 3. Deliver: if ${reporting.destination} is set, post the summary there; ALWAYS also send a PushNotification with the one-line headline (e.g. "3 merged, 2 verified, 1 parked (KEY-123: no AC coverage)").
 4. Quiet-day rule: nothing happened AND nothing parked → send nothing. Parked items exist → ALWAYS report; they repeat daily until a human clears them. Session-only.
 ```

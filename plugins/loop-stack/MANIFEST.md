@@ -24,6 +24,7 @@ Anything in the config set to `none`/empty is skipped — no deploy gate if you 
 | DEPLOY-FIX | `4,14,24,34,44,54 * * * *` | loops/deploy-failure-fix.md (skipped if no deploy workflows) |
 | PR-SHEPHERD | `6,16,26,36,46,56 * * * *` | loops/pr-shepherd.md (my open PRs: review-respond / CI-fix / conflict-resolve) |
 | SYNC-INTEGRATION | `9,39 * * * *` | loops/sync-integration.md (keeps fix-base branches synced with env branches; skipped if none configured) |
+| E2E-SWEEP | `11,31,51 * * * *` | loops/e2e-sweep.md (small time-boxed scenario batch per tick → rolling suite-health report; skipped if no e2e runner) |
 | DAILY-REPORT | `59 16 * * 1-5` | loops/daily-report.md (read-only standup summary + parked-item escalation) |
 
 Scoping invariant: work is selected by `${issueTracker.myWorkQuery}` — user-scoped + the active iteration, never the whole backlog. Each tick does one action, gates strictly on green tests (+ deploy when configured), and never overrides branch protection.
@@ -32,7 +33,7 @@ Scoping invariant: work is selected by `${issueTracker.myWorkQuery}` — user-sc
 
 - **skills/onboard/** — writes `.claude/stack.md` (`onboard.mjs` + `stack.example.md`) and drops the universal `CLAUDE.template.md` as the project's root `CLAUDE.md`. Run first.
 - **skills/lego-philosophy/** — the reusable, project-agnostic UI architecture rule (smart/dumb split + component inventory); the root `CLAUDE.md` and `frontend-component-conventions` reference it.
-- **loops/ (6)** — per-tick specs (FIX/VERIFY/STORY-VERIFY, PR-REVIEW, DEPLOY-FIX, PR-SHEPHERD, SYNC-INTEGRATION, DAILY-REPORT).
+- **loops/ (7)** — per-tick specs (FIX/VERIFY/STORY-VERIFY, PR-REVIEW, DEPLOY-FIX, PR-SHEPHERD, SYNC-INTEGRATION, E2E-SWEEP, DAILY-REPORT).
 - **skills/ (~30)** — orchestration (launch/stop-loop-stack), the devfix fix-path, the gherkin sub-flow, test/review/memory skills, and `scaffold-test-projects` (bootstrap a Gherkin-driven Playwright E2E project + unit tests: page objects, web-element wrappers, hooks). Tool-specific skills are generic + config-driven (database-migration, serverless-function, memory-first, test-management-sync).
 - **agents/ (13)** — the implement/review agent team (analyzer, coder, tester, reviewers, resolver, designer, etc.), tool-agnostic.
 - **commands/ (10)** — fix/PR-flow slash commands.
