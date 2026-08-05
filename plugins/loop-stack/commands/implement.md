@@ -23,6 +23,44 @@ Use the output to:
 
 Skip only if the graphify CLI is unavailable — note it explicitly and fall back to grep.
 
+## Step 0.5: Harvest → Brief (mandatory before any implementation)
+
+Two phases run before Step 1, in order — the same contract the autonomous IMPLEMENT loop uses:
+
+1. **Harvest.** When an issue key/URL is in play (`${issueTracker.tool}` ≠ none), dispatch the
+   issue harvester agent (**Harvey**, `agents/jira-harvester.md`) for the full ticket context —
+   description, comments, subtask/parent, Epic chain, related issues, linked docs pages, design
+   links — as structured AC YAML. No issue key → skip this phase; the provided spec/requirements
+   stand in for the harvest.
+2. **Brief.** Dispatch the **architect** agent (**Archie**, `agents/architect.md`) with the
+   harvest output (or the provided spec). Archie returns the **Architecture Brief** — scope
+   verdict, layers, dependency constraints, contracts, reuse-vs-create, data/migration needs,
+   compliance notes, risks. The brief is **binding**: implementation follows it, and the
+   `architecture-reviewer` seat (Rex) verifies the diff against it. `needs-decomposition` →
+   stop and report the suggested split instead of implementing (autonomous callers park the
+   issue; interactive callers ask the user).
+
+Steps 1–8 below are then executed under the brief's constraints.
+
+## Step 0.6: Team Dispatch (non-trivial implementations)
+
+Run the implementation as a **small subagent team** using the existing roster — not
+single-threaded inline work — whenever the change spans more than one file or carries any brief
+risk flag:
+
+- **Cody** (`agents/coder.md`) implements from the Team Briefing = Harvey's AC + Archie's brief +
+  this command's Steps 1–8 as the implementation standard.
+- **Tess** (`agents/tester.md`) runs all affected suites after Cody returns.
+- The review panel votes independently and must be **unanimous**: **Cleo**
+  (`agents/clean-code-reviewer.md`), **Rex** (`agents/architecture-reviewer.md`, brief in hand),
+  **Tia** (`agents/test-integrity-reviewer.md`).
+- **Sol** (`agents/resolver.md`) consolidates any concerns into one pass, then Tess + the panel
+  re-run.
+
+When `${integrations.superpowers}` is set, fan the independent seats out per
+`superpowers:dispatching-parallel-agents` — see `skills/shared/superpowers-integration.md`.
+Trivial one-file changes may run inline, still under the brief.
+
 ## Step 1: Analyze and Understand Requirements
 
 1. **Review inputs**: Carefully read any design, documentation, or specification files.
