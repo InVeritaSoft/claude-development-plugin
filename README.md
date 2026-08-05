@@ -16,14 +16,14 @@ A Claude Code plugin marketplace with three plugins: **loop-stack** (a universal
 
 ## loop-stack — autonomous dev loop stack (universal)
 
-A portable, **config-driven** set of skills, agents, commands, and loops that drive a "my work in the active iteration" workflow in **any** project: auto-fix assigned bugs → verify against AC + deploys → review requested PRs → shepherd your own PRs to merge → repair failed deployments → sync fix-base branches → daily standup report with parked-item escalation. Nothing is hardcoded; project specifics live in `.claude/stack.md`.
+A portable, **config-driven** set of skills, agents, commands, and loops that drive a "my work in the active iteration" workflow in **any** project: auto-fix assigned bugs → verify against AC + deploys → review requested PRs → shepherd your own PRs to merge → repair failed deployments → sync fix-base branches → sweep a small time-boxed batch of E2E scenarios each tick into a rolling suite-health report → daily standup report with parked-item escalation. Nothing is hardcoded; project specifics live in `.claude/stack.md`.
 
 Bring it to a project:
 
 ```bash
 # 1. Install the plugin (above), or copy plugins/loop-stack/{skills,agents,commands,loops} into the project's .claude/
 # 2. Onboard once — detects your stack, writes .claude/stack.md, prepares .claude/loops/ (specs + gitignored state/)
-node plugins/loop-stack/skills/onboarding/onboarding.mjs
+node plugins/loop-stack/skills/onboard/onboard.mjs --non-interactive
 # 3. Launch the loops (now driven entirely by your config)
 #    → run the `launch-loop-stack` skill
 ```
@@ -48,7 +48,7 @@ Per-project prerequisites (Claude Code prompts before installing any of them):
 ```
 .claude-plugin/marketplace.json    # marketplace registry (loop-stack + css-drift-auditor + mobile-platform-guidelines)
 plugins/loop-stack/                # the autonomous loop stack plugin
-plugins/loop-stack/skills/onboarding/  # onboarding.mjs → writes .claude/stack.md
+plugins/loop-stack/skills/onboard/      # onboard.mjs → writes .claude/stack.md + materializes .claude/loops/
 plugins/loop-stack/{MANIFEST,CONVENTIONS}.md  # what the stack contains + how it stays universal
 plugins/css-drift-auditor/         # the CSS-drift plugin
 plugins/mobile-platform-guidelines/  # iOS HIG + Material 3 mobile UI skill
