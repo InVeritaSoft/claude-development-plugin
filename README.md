@@ -27,14 +27,14 @@ claude plugin update loop-stack@dev-tools     # shell: update the installed plug
 There is no `/plugin update` slash command — updating happens via the shell command above, or through
 `/plugin` → **Marketplaces** tab (where you can also flip on auto-update for `dev-tools`).
 
-Current versions: **loop-stack 1.5.0**,
+Current versions: **loop-stack 1.6.0**,
 **css-drift-auditor 0.4.2**, **mobile-platform-guidelines 1.0.0**. Loop specs are materialized into
 a project by the `onboard` skill, so after updating, **re-run `onboard`** in each project to pick up
 new loops — it never overwrites a spec you've edited.
 
 ## loop-stack — autonomous dev loop stack (universal)
 
-A portable, **config-driven** set of skills, agents, commands, and loops that drive a "my work in the active iteration" workflow in **any** project: auto-fix assigned bugs → verify against AC + deploys → review requested PRs → shepherd your own PRs to merge → repair failed deployments → sync fix-base branches → sweep a small time-boxed batch of E2E scenarios each tick into a rolling suite-health report → daily standup report with parked-item escalation. Nothing is hardcoded; project specifics live in `.claude/stack.md`.
+A portable, **config-driven** set of skills, agents, commands, and loops that drive a "my work in the active iteration" workflow in **any** project: auto-fix assigned bugs → implement sprint stories behind a mandatory architect brief (Harvest → Brief → small agent team) → verify against AC + deploys → review requested PRs → shepherd your own PRs to merge → repair failed deployments → sync fix-base branches → sweep a small time-boxed batch of E2E scenarios each tick into a rolling suite-health report → daily standup report with parked-item escalation. Nothing is hardcoded; project specifics live in `.claude/stack.md`.
 
 Bring it to a project:
 
