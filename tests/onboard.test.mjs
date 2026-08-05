@@ -159,4 +159,38 @@ describe("onboard green-gate rendering", () => {
     const testing = stackMdSection(read(dir, ".claude/stack.md"), "## Testing");
     assert.match(testing, /No E2E harness detected/);
   });
+
+  // The IMPLEMENT loop only picks up issue types the project opted into at onboarding.
+  // The key must exist with a tracker-preset default, render into stack.md (what loops read),
+  // survive re-runs, and support [] = "loop disabled" without being re-seeded.
+  test("seeds issueTypes.implement from the tracker preset and renders it", () => {
+    const dir = tmpProject({ "package.json": pkg() });
+    runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    const cfg = readJSON(dir, ".claude/stack.json");
+    assert.deepEqual(cfg.issueTracker.issueTypes.implement, ["story", "task"]);
+
+    const tracker = stackMdSection(read(dir, ".claude/stack.md"), "## Issue tracker");
+    assert.match(tracker, /IMPLEMENT loop picks up:/);
+    assert.match(tracker, /story/);
+  });
+
+  test("preserves customized issueTypes.implement across re-runs, including []", () => {
+    const dir = tmpProject({ "package.json": pkg() });
+    runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    const cfg = readJSON(dir, ".claude/stack.json");
+    cfg.issueTracker.issueTypes.implement = ["Improvement"];
+    fs.writeFileSync(path.join(dir, ".claude/stack.json"), JSON.stringify(cfg, null, 2));
+    runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+    assert.deepEqual(readJSON(dir, ".claude/stack.json").issueTracker.issueTypes.implement, ["Improvement"]);
+
+    cfg.issueTracker.issueTypes.implement = [];
+    fs.writeFileSync(path.join(dir, ".claude/stack.json"), JSON.stringify(cfg, null, 2));
+    runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+    assert.deepEqual(readJSON(dir, ".claude/stack.json").issueTracker.issueTypes.implement, [],
+      "[] means 'IMPLEMENT loop disabled' and must not be re-seeded");
+    assert.match(stackMdSection(read(dir, ".claude/stack.md"), "## Issue tracker"),
+      /IMPLEMENT loop picks up: none/);
+  });
 });

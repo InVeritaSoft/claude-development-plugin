@@ -330,6 +330,7 @@ const TRACKER = {
     myWorkQuery: "assignee = currentUser() AND sprint in openSprints()",
     states: { todo: "To Do", inProgress: "In Progress", inReview: "In Review", verify: "Dev Testing", verified: "Ready for Testing", done: "Done" },
     handoff: "reporter",
+    implementTypes: ["Story", "Task"],
   },
   github: {
     keyPrefix: "#",
@@ -337,12 +338,14 @@ const TRACKER = {
     // GitHub Issues has only open/closed; interim states are labels (transition = add/remove label, done = close).
     states: { todo: "open", inProgress: "in progress", inReview: "in review", verify: "needs testing", verified: "verified", done: "closed" },
     handoff: "reporter",
+    implementTypes: ["story", "task"],
   },
   linear: {
     keyPrefix: "",
     myWorkQuery: "assignee:me state:started",
     states: { todo: "Todo", inProgress: "In Progress", inReview: "In Review", verify: "In Review", verified: "Done", done: "Done" },
     handoff: "reporter",
+    implementTypes: ["Feature", "Improvement"],
   },
 };
 
@@ -365,7 +368,12 @@ function defaultsFrom(d, prev) {
       connection: it.connection || (tool === "github" ? d.vcs.repo : ""),
       keyPrefix: it.keyPrefix || tp.keyPrefix || "",
       myWorkQuery: it.myWorkQuery || tp.myWorkQuery || "",
-      issueTypes: it.issueTypes || { bug: "Bug", story: "Story" },
+      issueTypes: {
+        bug: (it.issueTypes && it.issueTypes.bug) || "Bug",
+        story: (it.issueTypes && it.issueTypes.story) || "Story",
+        // Which issue types the autonomous IMPLEMENT loop may pick up. [] = loop disabled.
+        implement: (it.issueTypes && it.issueTypes.implement) || tp.implementTypes || ["Story", "Task"],
+      },
       states: it.states || tp.states || { todo: "To Do", inProgress: "In Progress", inReview: "In Review", verify: "", verified: "", done: "Done" },
       transitionIds: it.transitionIds || {},
       handoffAssignee: it.handoffAssignee || tp.handoff || "reporter",
@@ -444,6 +452,10 @@ async function prompt(cfg, conflicts) {
   } else if (tool !== "none") {
     cfg.issueTracker.myWorkQuery = await ask("  'My active work' query", cfg.issueTracker.myWorkQuery);
   }
+  if (tool !== "none") {
+    const implAns = await ask("Issue types the autonomous IMPLEMENT loop may pick up (comma-sep; 'none' disables it)", (cfg.issueTracker.issueTypes.implement || []).join(",") || "none");
+    cfg.issueTracker.issueTypes.implement = /^none$/i.test(implAns) ? [] : implAns.split(",").map((s) => s.trim()).filter(Boolean);
+  }
   cfg.vcs.integrationBranch = await ask("Integration branch", cfg.vcs.integrationBranch);
   cfg.commands.packageManager = await ask("Package manager", cfg.commands.packageManager);
   cfg.frontend.frameworks = (await ask("Frontend framework(s), comma-sep", cfg.frontend.frameworks.join(","))).split(",").map((s) => s.trim()).filter(Boolean);
@@ -491,7 +503,11 @@ function renderMd(c) {
   L.push("- Connection: " + v(c.issueTracker.connection));
   L.push("- Ticket key prefix: " + (c.issueTracker.keyPrefix || DASH + " (e.g. GitHub #number)"));
   L.push("- \"My active work\" query: " + code(c.issueTracker.myWorkQuery));
-  L.push("- Issue types: bug=" + code(c.issueTracker.issueTypes.bug) + ", story=" + code(c.issueTracker.issueTypes.story));
+  {
+    const impl = c.issueTracker.issueTypes.implement || [];
+    L.push("- Issue types: bug=" + code(c.issueTracker.issueTypes.bug) + ", story=" + code(c.issueTracker.issueTypes.story));
+    L.push("- IMPLEMENT loop picks up: " + (impl.length ? impl.map(code).join(", ") : "none " + DASH + " IMPLEMENT loop disabled"));
+  }
   L.push("- States: " + states);
   L.push("- Transition ids (if tracker needs them): " + transitions);
   L.push("- On verify, reassign to: " + v(c.issueTracker.handoffAssignee) + " (reporter = the issue opener, whatever the tracker calls it)");
