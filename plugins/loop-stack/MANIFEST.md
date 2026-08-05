@@ -18,6 +18,7 @@ Anything in the config set to `none`/empty is skipped — no deploy gate if you 
 | Loop | Cadence (cron) | Spec file |
 |---|---|---|
 | FIX | `*/5 6-20 * * 1-5` | loops/my-bugs-in-sprint-devfix.md |
+| IMPLEMENT | `1,21,41 6-20 * * 1-5` | loops/implement.md (skipped if `${issueTracker.issueTypes.implement}` is empty) |
 | VERIFY | `3-58/5 * * * *` | loops/my-bugs-in-sprint-devfix.md |
 | STORY-VERIFY | `2-57/5 * * * *` | loops/my-bugs-in-sprint-devfix.md |
 | PR-REVIEW | `*/10 * * * *` | loops/pr-review.md |
@@ -33,9 +34,9 @@ Scoping invariant: work is selected by `${issueTracker.myWorkQuery}` — user-sc
 
 - **skills/onboard/** — writes `.claude/stack.md` (`onboard.mjs` + `stack.example.md`) and drops the universal `CLAUDE.template.md` as the project's root `CLAUDE.md`. Run first.
 - **skills/lego-philosophy/** — the reusable, project-agnostic UI architecture rule (smart/dumb split + component inventory); the root `CLAUDE.md` and `frontend-component-conventions` reference it.
-- **loops/ (7)** — per-tick specs (FIX/VERIFY/STORY-VERIFY, PR-REVIEW, DEPLOY-FIX, PR-SHEPHERD, SYNC-INTEGRATION, E2E-SWEEP, DAILY-REPORT).
-- **skills/ (~30)** — orchestration (launch/stop-loop-stack), the devfix fix-path, the gherkin sub-flow, test/review/memory skills, and `scaffold-test-projects` (bootstrap a Gherkin-driven Playwright E2E project + unit tests: page objects, web-element wrappers, hooks). Tool-specific skills are generic + config-driven (database-migration, serverless-function, memory-first, test-management-sync).
-- **agents/ (13)** — the implement/review agent team (analyzer, coder, tester, reviewers, resolver, designer, etc.), tool-agnostic.
+- **loops/ (8)** — per-tick specs (FIX/VERIFY/STORY-VERIFY, IMPLEMENT, PR-REVIEW, DEPLOY-FIX, PR-SHEPHERD, SYNC-INTEGRATION, E2E-SWEEP, DAILY-REPORT).
+- **skills/ (~30)** — orchestration (launch/stop-loop-stack), the devfix fix-path, the IMPLEMENT story-path (Harvest → architect Brief → team dispatch via commands/implement.md), the gherkin sub-flow, test/review/memory skills, and `scaffold-test-projects` (bootstrap a Gherkin-driven Playwright E2E project + unit tests: page objects, web-element wrappers, hooks). Tool-specific skills are generic + config-driven (database-migration, serverless-function, memory-first, test-management-sync).
+- **agents/ (14)** — the implement/review agent team (analyzer, architect, coder, tester, reviewers, resolver, designer, etc.), tool-agnostic, each with a cozy display persona (Archie, Cody, Tess, …).
 - **commands/ (10)** — fix/PR-flow slash commands.
 - **CONVENTIONS.md** — how every file stays universal (the config contract + token map).
 
