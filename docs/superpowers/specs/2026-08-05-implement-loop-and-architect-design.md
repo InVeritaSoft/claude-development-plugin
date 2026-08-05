@@ -114,6 +114,28 @@ direction, port/adapter boundaries, compliance regime, policy coverage, coupling
 brief to be revised, not silently ignored. `architecture-reviewer` (Seat B) receives the brief
 and verifies the diff against it.
 
+## 2a. Cozy names — the implement team's personas
+
+Every team member gets a cozy display name, used in loop narration, the Team Briefing, PR/tracker
+comments, and DAILY-REPORT lines — so a tick reads like a small team at work ("Archie parked
+PROJ-42: needs decomposition"). **Agent ids and filenames stay technical kebab-case** (that's what
+dispatch and the tests key on); the cozy name lives in each agent's frontmatter as a persona line.
+
+| Agent (id) | Cozy name |
+|---|---|
+| `jira-harvester` | **Harvey** — brings back the whole story, never a summary |
+| `architect` (new) | **Archie** — draws the blueprint before anyone lifts a brick |
+| `coder` | **Cody** — builds exactly what the blueprint says |
+| `tester` | **Tess** — trusts nothing until it's green |
+| `clean-code-reviewer` | **Cleo** — tidies to SOLID/DRY/KISS |
+| `architecture-reviewer` | **Rex** — checks the build against Archie's blueprint |
+| `test-integrity-reviewer` | **Tia** — no weakened assertions on her watch |
+| `resolver` | **Sol** — turns the panel's concerns into one clean pass |
+| `designer` | **Dezi** — maps pixels to components (design path only) |
+
+Scope note: personas are additive flavor — one frontmatter line + narration usage. No behavior,
+tool grants, or dispatch contracts change because of a name.
+
 ## 3a. Onboarding — which task types to implement
 
 `onboard` clarifies which issue types the IMPLEMENT loop may pick up and writes the answer to
