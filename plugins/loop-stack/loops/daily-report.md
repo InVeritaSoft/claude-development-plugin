@@ -30,7 +30,7 @@ code, PRs, branches, or tracker state.** You own this file — edit it, then re-
    - **Deploy incidents:** entries in `.claude/loops/state/deploy-fix-done.txt` from the window (`# fixed via PR` vs `# infra`).
    - **Suite health:** the Coverage + Confirmed regressions sections of `.claude/loops/state/e2e-sweep-report.md` — condensed to one line (scenarios swept in the last 24h, confirmed e2e regressions).
    - **PARKED — the part that must not rot:** every line of `.claude/loops/state/my-bugs-verify-parked.txt`,
-     `.claude/loops/state/my-stories-verify-parked.txt`, every `# needs-human` line in `.claude/loops/state/pr-shepherd-done.txt`, every line of `.claude/loops/state/sync-integration-blocked.txt` (fix-base branches a human must promote by hand), and every line of `.claude/loops/state/e2e-sweep-blocked.txt` (sweeps skipped because the app wasn't up).
+     `.claude/loops/state/my-stories-verify-parked.txt`, `.claude/loops/state/my-stories-implement-parked.txt` (stories the IMPLEMENT loop parked for a human — needs-decomposition or ambiguous AC), every `# needs-human` line in `.claude/loops/state/pr-shepherd-done.txt`, every line of `.claude/loops/state/sync-integration-blocked.txt` (fix-base branches a human must promote by hand), and every line of `.claude/loops/state/e2e-sweep-blocked.txt` (sweeps skipped because the app wasn't up).
 2. **Compose** a short, human-voice summary (plain sentences, no jargon-dump):
    - **Done** — merged PRs, issues verified/handed to QA.
    - **In flight** — open PRs and what each is waiting on (review / checks / conflict).
@@ -56,6 +56,7 @@ code, PRs, branches, or tracker state.** You own this file — edit it, then re-
 ## Related
 
 - `.claude/loops/my-bugs-in-sprint-devfix.md` — writes the park files this loop surfaces.
+- `.claude/loops/implement.md` — writes the implement park file this loop surfaces.
 - `.claude/loops/pr-shepherd.md` — writes the `# needs-human` entries this loop surfaces.
 - `.claude/loops/deploy-failure-fix.md`, `.claude/loops/pr-review.md` — activity sources.
 - `.claude/loops/e2e-sweep.md` — writes the rolling suite-health report and the blocked lines this loop condenses.

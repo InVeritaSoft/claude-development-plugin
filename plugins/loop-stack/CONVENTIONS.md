@@ -89,7 +89,7 @@ All loop park/dedupe files live in the project's **`.claude/loops/state/`** (cre
 gitignored). Never write loop state to `/tmp` or any path shared across projects: issue keys, PR
 numbers, and deploy run IDs are only unique *within* a repo, so a global file makes one project's
 state dedupe/park another's — and `/tmp` is wiped on reboot, silently un-parking everything.
-Current files: `my-bugs-verify-parked.txt`, `my-stories-verify-parked.txt`, `pr-review-done.txt`,
+Current files: `my-bugs-verify-parked.txt`, `my-stories-verify-parked.txt`, `my-stories-implement-parked.txt`, `pr-review-done.txt`,
 `deploy-fix-done.txt`, `pr-shepherd-done.txt`, `sync-integration-blocked.txt`, `e2e-sweep-cursor.txt`,
 `e2e-sweep-health.json`, `e2e-sweep-report.md`, `e2e-sweep-blocked.txt`. A new loop adds its file here and lists it in
 `stop-loop-stack`'s state-file table.
