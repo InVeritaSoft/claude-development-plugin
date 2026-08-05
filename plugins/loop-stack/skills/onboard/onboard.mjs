@@ -21,6 +21,13 @@ import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
 import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+// Where this script lives. MUST go through fileURLToPath: on Windows, `new URL(import.meta.url).pathname`
+// yields "/D:/dir", and path.resolve then prefixes the cwd drive → "D:\D:\dir" (a path that never exists),
+// so every copy step below would silently take its fail-soft branch. It also decodes percent-escapes,
+// which a raw pathname leaves mangled for any install path containing a space.
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -596,7 +603,7 @@ if (!gi.split("\n").some((l) => l.trim() === stateIgnore || l.trim() === stateIg
 // Materialize the loop specs into the project. Cron prompts reference .claude/loops/<spec>.md,
 // which must exist in the project regardless of how the stack is installed (plugin cache or
 // repo copy). Never overwrite: once copied, the project owns its specs ("you own this file").
-const specSrcDir = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..", "loops");
+const specSrcDir = path.resolve(SCRIPT_DIR, "..", "..", "loops");
 try {
   for (const f of fs.readdirSync(specSrcDir).filter((n) => n.endsWith(".md"))) {
     const dst = path.resolve(OUT, "loops", f);
@@ -617,7 +624,7 @@ console.log("  Review .claude/stack.md and tweak anything (especially issue-trac
 // It is project-agnostic (reads .claude/stack.md), so we never clobber an existing file.
 const claudeMdPath = path.resolve(ROOT, "CLAUDE.md");
 if (!fs.existsSync(claudeMdPath)) {
-  const tplPath = path.resolve(path.dirname(new URL(import.meta.url).pathname), "CLAUDE.template.md");
+  const tplPath = path.resolve(SCRIPT_DIR, "CLAUDE.template.md");
   try {
     fs.copyFileSync(tplPath, claudeMdPath);
     console.log("  Wrote " + path.relative(ROOT, claudeMdPath) + " (universal entry point; reads .claude/stack.md).");
