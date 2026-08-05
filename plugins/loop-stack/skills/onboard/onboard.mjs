@@ -372,7 +372,7 @@ function defaultsFrom(d, prev) {
         bug: (it.issueTypes && it.issueTypes.bug) || "Bug",
         story: (it.issueTypes && it.issueTypes.story) || "Story",
         // Which issue types the autonomous IMPLEMENT loop may pick up. [] = loop disabled.
-        implement: (it.issueTypes && it.issueTypes.implement) || tp.implementTypes || ["Story", "Task"],
+        implement: (it.issueTypes && it.issueTypes.implement) || tp.implementTypes || [],
       },
       states: it.states || tp.states || { todo: "To Do", inProgress: "In Progress", inReview: "In Review", verify: "", verified: "", done: "Done" },
       transitionIds: it.transitionIds || {},

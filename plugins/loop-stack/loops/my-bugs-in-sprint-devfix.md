@@ -15,7 +15,7 @@ filtered by issue type and status. Don't widen it to the whole backlog and don't
 filter unless the configured query already implies one.
 
 - FIX / VERIFY operate on **bugs** (`issuetype = ${issueTracker.issueTypes.bug}`).
-- STORY-VERIFY operates on **stories** (`${issueTracker.issueTypes.story}` and any extras in config);
+- STORY-VERIFY operates on **stories and implement-loop output** (`${issueTracker.issueTypes.story}` plus every type in `${issueTracker.issueTypes.implement}`);
   its AC check is **E2E-mandatory** (needs ≥1 passing `${testing.e2e.tagConvention}` scenario keyed to
   the issue; unit-only never satisfies the gate; no deploy gate; assignee left unchanged).
   Park file: `.claude/loops/state/my-stories-verify-parked.txt`.

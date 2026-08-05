@@ -14,6 +14,7 @@
 - Ticket key prefix: PROJ
 - "My active work" query: `assignee = currentUser() AND sprint in openSprints()`
 - Issue types: bug=`Bug`, story=`Story` (+ Improvement, "Change Request")
+- IMPLEMENT loop picks up: `Story`, `Task`
 - States: todo=To Do, inProgress=In Progress, inReview=In Review, verify=Dev Testing, verified=Ready for Testing, done=Done
 - Transition ids (if tracker needs them): {"In Progress":21,"Dev Testing":9,"Ready for Testing":2}
 - On verify, reassign to: reporter

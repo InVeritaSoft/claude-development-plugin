@@ -1,7 +1,7 @@
 {
   "name": "loop-stack",
   "version": "1.6.0",
-  "description": "Universal, config-driven autonomous dev loop stack: session crons that fix assigned bugs, verify against AC + deploys, review requested PRs, shepherd your own PRs to merge (review-respond / CI-fix / conflict-resolve), repair failed deployments, keep fix-base branches synced, sweep a small time-boxed batch of e2e scenarios per tick into a rolling suite-health report, and post a daily standup report with parked-item escalation. Project specifics live in .claude/stack.md, written and refreshed by the onboard skill (re-runnable, observes your PR + deploy systems).",
+  "description": "Universal, config-driven autonomous dev loop stack: session crons that fix assigned bugs, implement sprint stories behind a mandatory architect brief, verify against AC + deploys, review requested PRs, shepherd your own PRs to merge (review-respond / CI-fix / conflict-resolve), repair failed deployments, keep fix-base branches synced, sweep a small time-boxed batch of e2e scenarios per tick into a rolling suite-health report, and post a daily standup report with parked-item escalation. Project specifics live in .claude/stack.md, written and refreshed by the onboard skill (re-runnable, observes your PR + deploy systems).",
   "author": {
     "name": "Mykhailo"
   },

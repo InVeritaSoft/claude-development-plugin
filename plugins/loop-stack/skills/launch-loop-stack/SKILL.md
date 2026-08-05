@@ -101,8 +101,8 @@ Autonomous "my bugs" — VERIFY TICK (any time, session active). First read .cla
 ### Loop 3 — STORY-VERIFY  (`cron: 2-57/5 * * * *`, recurring)
 
 ```
-Autonomous "my stories" — STORY-VERIFY TICK (any time, session active). First read .claude/stack.md. ISSUE TYPES: ${issueTracker.issueTypes.story} (+ any extras in config) via ${issueTracker.myWorkQuery} — USER-SCOPED + active iteration. One issue per tick. AC VERIFICATION IS E2E-MANDATORY.
-1. Query the tracker (connection ${issueTracker.connection}): story-type issues in status ${states.verify} via ${issueTracker.myWorkQuery} (ORDER BY priority DESC, key ASC), EXCLUDING any key in .claude/loops/state/my-stories-verify-parked.txt. None → STOP.
+Autonomous "my stories" — STORY-VERIFY TICK (any time, session active). First read .claude/stack.md. ISSUE TYPES: ${issueTracker.issueTypes.story} + every type in ${issueTracker.issueTypes.implement} via ${issueTracker.myWorkQuery} — USER-SCOPED + active iteration. One issue per tick. AC VERIFICATION IS E2E-MANDATORY.
+1. Query the tracker (connection ${issueTracker.connection}): issues of those types in status ${states.verify} via ${issueTracker.myWorkQuery} (ORDER BY priority DESC, key ASC), EXCLUDING any key in .claude/loops/state/my-stories-verify-parked.txt. None → STOP.
 2. Overlap guard: `git status --porcelain` over source/test dirs shows ANY change other than .claude/scheduled_tasks.lock → STOP.
 3. Pick ONE (priority DESC, tie-break lowest key).
 4. git fetch origin; checkout the issue's branch if it exists, else origin/${vcs.integrationBranch}.

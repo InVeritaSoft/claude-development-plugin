@@ -27,6 +27,7 @@ Replace every hardcoded specific with the config reference. Mention the old conc
 | `RESC-<n>`, `RESC#` | `keyPrefix` + `<KEY>` |
 | `assignee = currentUser() AND sprint in openSprints()` | issue tracker `myWorkQuery` |
 | transition ids `21 / 9 / 2` | `states` + `transitionIds` |
+| issue types "Story / Task" the loops may implement | `issueTypes.implement` (set at onboarding; [] disables the IMPLEMENT loop) |
 | statuses "To Do / In Progress / Dev Testing / Ready for Testing" | `states.{todo,inProgress,verify,verified,done}` |
 | reassign to reporter | `handoffAssignee` |
 | `RescueId/RescueIdMain` | `project.repo` |
@@ -78,6 +79,7 @@ the same `${issueTracker.*}` tokens regardless of tool:
 | `states.*` | named workflow statuses | `open`/`closed` + **labels** for interim states | named workflow states |
 | transition | `transitionIds` or state name | add/remove the state **label** (+ close for `done`) | by state name |
 | `handoffAssignee: reporter` | the Jira reporter | the **issue author** | the issue **creator** |
+| `issueTypes.implement` default | `["Story", "Task"]` | labels `["story", "task"]` | `["Feature", "Improvement"]` |
 
 `reporter` always means *the person who opened the issue*, whatever the tracker calls it. Skills and
 loops must not hardcode Jira verbs (transition ids, sprints, JQL) — read the token and act per the

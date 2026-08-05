@@ -36,7 +36,7 @@ Scoping invariant: work is selected by `${issueTracker.myWorkQuery}` — user-sc
 - **skills/lego-philosophy/** — the reusable, project-agnostic UI architecture rule (smart/dumb split + component inventory); the root `CLAUDE.md` and `frontend-component-conventions` reference it.
 - **loops/ (8)** — per-tick specs (FIX/VERIFY/STORY-VERIFY, IMPLEMENT, PR-REVIEW, DEPLOY-FIX, PR-SHEPHERD, SYNC-INTEGRATION, E2E-SWEEP, DAILY-REPORT).
 - **skills/ (~30)** — orchestration (launch/stop-loop-stack), the devfix fix-path, the IMPLEMENT story-path (Harvest → architect Brief → team dispatch via commands/implement.md), the gherkin sub-flow, test/review/memory skills, and `scaffold-test-projects` (bootstrap a Gherkin-driven Playwright E2E project + unit tests: page objects, web-element wrappers, hooks). Tool-specific skills are generic + config-driven (database-migration, serverless-function, memory-first, test-management-sync).
-- **agents/ (14)** — the implement/review agent team (analyzer, architect, coder, tester, reviewers, resolver, designer, etc.), tool-agnostic, each with a cozy display persona (Archie, Cody, Tess, …).
+- **agents/ (14)** — the implement/review agent team (analyzer, architect, coder, tester, reviewers, resolver, designer, etc.), tool-agnostic; the implement team carries cozy display personas (Archie, Cody, Tess, …).
 - **commands/ (10)** — fix/PR-flow slash commands.
 - **CONVENTIONS.md** — how every file stays universal (the config contract + token map).
 
