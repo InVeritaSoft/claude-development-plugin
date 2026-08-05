@@ -14,6 +14,19 @@ A Claude Code plugin marketplace with three plugins: **loop-stack** (a universal
 /plugin install mobile-platform-guidelines@dev-tools
 ```
 
+Already installed? A `/plugin install` on an existing plugin is a no-op — pull the marketplace
+again first, then update:
+
+```bash
+/plugin marketplace update dev-tools
+/plugin update loop-stack@dev-tools
+```
+
+(Or just run `/plugin` and use the menu.) Current versions: **loop-stack 1.5.0**,
+**css-drift-auditor 0.4.2**, **mobile-platform-guidelines 1.0.0**. Loop specs are materialized into
+a project by the `onboard` skill, so after updating, **re-run `onboard`** in each project to pick up
+new loops — it never overwrites a spec you've edited.
+
 ## loop-stack — autonomous dev loop stack (universal)
 
 A portable, **config-driven** set of skills, agents, commands, and loops that drive a "my work in the active iteration" workflow in **any** project: auto-fix assigned bugs → verify against AC + deploys → review requested PRs → shepherd your own PRs to merge → repair failed deployments → sync fix-base branches → sweep a small time-boxed batch of E2E scenarios each tick into a rolling suite-health report → daily standup report with parked-item escalation. Nothing is hardcoded; project specifics live in `.claude/stack.md`.
