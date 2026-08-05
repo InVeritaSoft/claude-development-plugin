@@ -66,10 +66,19 @@ PR (head per `${vcs.branchNaming}`, base `${vcs.integrationBranch}`, mine) for a
    output. It returns the Architecture Brief. Verdict `needs-decomposition` → **park** (append
    `<KEY> # <reason>` to `.claude/loops/state/my-stories-implement-parked.txt`), revert the
    story to `${states.todo}`, delete the branch, stop.
-5. **Phase I — Implement.** Route by design presence: harvest surfaced design links **and**
-   `${design.figma}` ≠ `none` → run the **`implement-designs`** skill (its
-   Explorer/Analyzer/Coder/Reviewer council); otherwise → the **`implement`** command
-   guidelines. The Architecture Brief is passed in as binding input either way.
+5. **Phase I — Implement, as a small subagent team.** Route by design presence:
+   - Harvest surfaced design links **and** `${design.figma}` ≠ `none` → run the
+     **`implement-designs`** skill — it already orchestrates its
+     Explorer/Analyzer/Coder/Reviewer council; the Architecture Brief joins its inputs.
+   - Otherwise → dispatch the **existing agent roster as a small team**, mirroring devfix
+     Phases 2–3.6 (no new agents beyond the architect): **coder** implements from a Team
+     Briefing = harvester AC + Architecture Brief + the `implement` command's guidelines as
+     its implementation standard; **tester** runs affected suites; the **review panel**
+     (clean-code-reviewer, architecture-reviewer — brief in hand, test-integrity-reviewer)
+     returns independent verdicts; **resolver** consolidates concerns, then tester + panel
+     re-run until unanimous. Parallelize independent seats per
+     `superpowers:dispatching-parallel-agents` when available.
+   The Architecture Brief is binding input either way.
 6. **Finish-line** (`skills/shared/finish-line.md`): green gate, PR → `${vcs.integrationBranch}`,
    enable auto-merge when supported. Stop.
 
@@ -127,7 +136,7 @@ and verifies the diff against it.
 
 | File | Change |
 |---|---|
-| `commands/implement.md` | Insert mandatory **Harvest → Brief** phases before Step 1: when an issue key/URL is provided, run the harvester then the architect agent; brief is binding input to the implementation steps. No issue key → architect briefing still runs from the provided spec/requirements. |
+| `commands/implement.md` | Insert mandatory **Harvest → Brief** phases before Step 1 (issue key/URL → harvester then architect; no key → architect briefs from the provided spec), and a short **Team Dispatch** section: non-trivial implementations run the small-team flow of §1 Phase I (coder/tester/review-panel/resolver) with these guidelines as the coder's standard, rather than single-threaded inline work. |
 | `skills/implement-designs/SKILL.md` | One line: accept an Architecture Brief as input; its Analyzer honors it. |
 | `skills/launch-loop-stack/SKILL.md` | Register the IMPLEMENT cron (Loop 10), roster table + description; skip when `${issueTracker.issueTypes.implement}` is `none`/empty. |
 | `skills/onboard/*` + `CONVENTIONS.md` + `tests/onboard.test.mjs` | The `issueTypes.implement` onboarding question, presets, rendering, token-map entry, and test assertions (§3a). |
