@@ -41,6 +41,12 @@ Work is orchestrated by a four-role subagent team so design output lands on exis
 > lessons; this skill mandates the lookup, it does not restate any lesson. If `${memory.store}` is `none`, read
 > the project's `.claude/` notes instead. Apply whatever the store returns.
 
+> **Architecture Brief (when provided).** When the caller passes an Architecture Brief from the
+> `architect` agent (**Archie** — e.g. the IMPLEMENT loop or `commands/implement.md` Step 0.5),
+> fold it into the Design Brief as **binding constraints**: the Analyzer honors its contracts,
+> reuse-vs-create decisions, dependency direction, and data/compliance notes exactly as it honors
+> stored lessons. No brief passed → this gate is a no-op.
+
 ---
 
 ## Scope boundaries — when to use this skill vs others
