@@ -1,6 +1,6 @@
 ---
 name: launch-loop-stack
-description: Launch the full autonomous loop stack for the current session — the FIX, VERIFY, STORY-VERIFY, PR-REVIEW, DEPLOY-FIX, PR-SHEPHERD, SYNC-INTEGRATION, E2E-SWEEP, and DAILY-REPORT recurring ticks — by creating their session crons in one shot. Use when the user says "launch the loops", "start the loop stack", "set up the my-work loops", "run the autonomous loops", or after a session restart where the prior crons were lost. Each loop is one-action-per-tick, reads .claude/stack.md for all project specifics, and never overrides branch protection. Full per-loop specs live in .claude/loops/.
+description: Launch the full autonomous loop stack for the current session — the FIX, IMPLEMENT, VERIFY, STORY-VERIFY, PR-REVIEW, DEPLOY-FIX, PR-SHEPHERD, SYNC-INTEGRATION, E2E-SWEEP, and DAILY-REPORT recurring ticks — by creating their session crons in one shot. Use when the user says "launch the loops", "start the loop stack", "set up the my-work loops", "run the autonomous loops", or after a session restart where the prior crons were lost. Each loop is one-action-per-tick, reads .claude/stack.md for all project specifics, and never overrides branch protection. Full per-loop specs live in .claude/loops/.
 ---
 
 # Launch Loop Stack
@@ -17,11 +17,13 @@ Create the session-scoped recurring crons that drive the autonomous **"my work i
 > skip PR-SHEPHERD when the VCS host has no authenticated-user concept (identity is `@me` — the authenticated `gh` user, never a committed username, so shared config works for every team member);
 > skip SYNC-INTEGRATION when `${vcs.fixBaseBranches}` is empty or every fix base equals its env branch;
 > skip E2E-SWEEP when `${testing.e2e.runner}` is `none`.
+> Skip IMPLEMENT when `${issueTracker.issueTypes.implement}` is empty/`none` (the project opted out of autonomous story implementation at onboarding).
 > DAILY-REPORT always applies (push notification needs no config; `${reporting.destination}` is optional).
 
 | Loop | Cadence | Cron expression | Spec |
 |---|---|---|---|
 | **FIX** | weekdays 06:00–20:55, every 5 min | `*/5 6-20 * * 1-5` | `.claude/loops/my-bugs-in-sprint-devfix.md` |
+| **IMPLEMENT** | weekdays 06:01–20:41, every 20 min at :01/:21/:41 | `1,21,41 6-20 * * 1-5` | `.claude/loops/implement.md` |
 | **VERIFY** | any time, every 5 min at :03/:08/… | `3-58/5 * * * *` | `.claude/loops/my-bugs-in-sprint-devfix.md` |
 | **STORY-VERIFY** | any time, every 5 min at :02/:07/… | `2-57/5 * * * *` | `.claude/loops/my-bugs-in-sprint-devfix.md` |
 | **PR-REVIEW** | every 10 min | `*/10 * * * *` | `.claude/loops/pr-review.md` |
@@ -200,6 +202,27 @@ Autonomous DAILY-REPORT TICK (once per weekday, end of day). First read .claude/
 4. Quiet-day rule: nothing happened AND nothing parked → send nothing. Parked items exist → ALWAYS report; they repeat daily until a human clears them. Session-only.
 ```
 
+### Loop 10 — IMPLEMENT  (`cron: 1,21,41 6-20 * * 1-5`, recurring) — skip if ${issueTracker.issueTypes.implement} is empty/none
+
+```
+Autonomous "my stories" — IMPLEMENT TICK (weekday work hours). First read .claude/stack.md. IMPLEMENT-TYPE ISSUES ONLY: issuetype in ${issueTracker.issueTypes.implement}, selected via ${issueTracker.myWorkQuery} — USER-SCOPED + active iteration, not the whole backlog. One action per tick. Full spec: .claude/loops/implement.md
+
+STEP 1 — RECONCILE prior IMPLEMENT work first. git fetch origin. Look for a PR this loop created (head per ${vcs.branchNaming}, base ${vcs.integrationBranch}, author me) for an implement-type issue currently in ${states.inProgress}:
+- MERGED → transition that issue ${states.inProgress}→${states.verify} (state name, or id from ${issueTracker.transitionIds}) so STORY-VERIFY can pick it up. STOP.
+- OPEN, all required checks GREEN → merge per ${vcs.autoMerge}; on success transition the issue→${states.verify}. STOP. (Blocked by branch protection/required approvals → leave open, note, STOP — never override.)
+- OPEN, any check PENDING/queued → STOP (a later tick retries).
+- OPEN, a check FAILING → leave open — the PR-SHEPHERD loop triages and fixes it. STOP.
+
+STEP 2 — START a new story (only if no in-flight loop PR). Query my ${issueTracker.issueTypes.implement} issues in ${states.todo} via ${issueTracker.myWorkQuery} (ORDER BY priority DESC, key ASC), EXCLUDING any key in .claude/loops/state/my-stories-implement-parked.txt. None → STOP.
+- Overlap guard: `git status --porcelain` over source/test dirs shows ANY change other than .claude/scheduled_tasks.lock → STOP.
+- Pick ONE. Transition it ${states.todo}→${states.inProgress} BEFORE working.
+- git fetch origin; branch per ${vcs.branchNaming} (default type feat) off latest origin/${vcs.integrationBranch}.
+- HARVEST (mandatory): dispatch the issue harvester agent (Harvey) → full AC context (description, comments, parent/Epic chain, related issues, linked docs, design links).
+- BRIEF (mandatory): dispatch the architect agent (Archie) with the harvest → binding Architecture Brief. scope_verdict=needs-decomposition → append "<KEY> # <reason>" to .claude/loops/state/my-stories-implement-parked.txt, transition the issue back to ${states.todo}, delete the branch, STOP.
+- IMPLEMENT as a small team: design links present AND ${design.figma} ≠ none → run the implement-designs skill with the Architecture Brief as binding input. Otherwise run the implement command's Team Dispatch: coder (Cody) from the Team Briefing (AC + brief + the command's guidelines), tester (Tess), review panel Cleo+Rex+Tia (unanimous), resolver (Sol) on concerns then re-run.
+- FINISH: green gate per skills/shared/green-gate.md, commit, push, open PR → ${vcs.integrationBranch}, enable auto-merge (`gh pr merge --auto --squash`) if supported. Never force-merge or override protection. STOP.
+```
+
 ---
 
 ## Stopping the stack
@@ -212,4 +235,4 @@ Autonomous DAILY-REPORT TICK (once per weekday, end of day). First read .claude/
 
 - `.claude/loops/*.md` — full per-loop specs (recovery, deploy-gate detail, story e2e-gate).
 - `onboard` — writes `.claude/stack.md` (run once per project before launching).
-- `devfix` — the skill each FIX tick runs. `github-pr-review` — the skill each PR-REVIEW tick runs.
+- `devfix` — the skill each FIX tick runs. `commands/implement.md` + `implement-designs` — what each IMPLEMENT tick runs. `github-pr-review` — the skill each PR-REVIEW tick runs.
