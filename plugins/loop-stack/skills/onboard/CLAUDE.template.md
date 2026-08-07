@@ -113,6 +113,14 @@ only when `.claude/stack.md` declares that capability — otherwise they're a no
     - Skills carry only the *instruction* to query/store — the lesson content stays in the store so
       there is one place to update it.
 
+## Response format
+
+**Always end every reply with a remaining-work line.** The literal last line of each response is
+`Remaining work: <what's left>` — a short list of outstanding items, or `none` when nothing is
+left. It goes after all other content (including code blocks and command output), so the user
+always sees the current status without asking. This applies to every turn, including short
+answers and questions back to the user.
+
 ## Skills map — route by intent
 
 Claude Code auto-surfaces skills via their `description:`. Use this map when several fit or to
