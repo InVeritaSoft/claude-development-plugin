@@ -11,7 +11,7 @@
       "name": "loop-stack",
       "source": "./plugins/loop-stack",
       "description": "Universal, config-driven autonomous dev loop stack: session crons that fix assigned bugs, implement sprint stories behind a mandatory architect brief, verify against AC + deploys, review requested PRs, shepherd your own PRs to merge, repair failed deployments, sync fix-base branches, sweep a small time-boxed batch of e2e scenarios per tick into a rolling suite-health report, and post a daily standup report. Project specifics live in .claude/stack.md (written by the onboard skill). Optionally delegates shared disciplines (TDD, debugging, verification, code review) to the superpowers plugin when installed.",
-      "version": "1.6.0",
+      "version": "1.6.1",
       "author": { "name": "Mykhailo" },
       "category": "development",
       "keywords": ["autonomous", "loops", "cron", "devfix", "pr-review", "ci", "jira", "workflow"]
