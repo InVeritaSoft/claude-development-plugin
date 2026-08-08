@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Cut GitHub releases for any plugin whose version has been bumped but never tagged.
+// Cut GitHub releases for any plugin whose version has been bumped but never released.
 //
 // Runs locally on purpose — GitHub Actions is not relied on for releasing.
 // Zero dependencies (Node built-ins + `git` + `gh`), same rule as onboard.mjs.
@@ -7,10 +7,16 @@
 //   node scripts/release.mjs --dry-run   # show what would be released, touch nothing
 //   node scripts/release.mjs             # tag + push + create the releases
 //   node scripts/release.mjs --plugin loop-stack
+//   node scripts/release.mjs --remote origin        # just the one remote
 //
 // Tag scheme: <plugin>-v<version>, e.g. loop-stack-v1.5.0.
 // The tag is placed on HEAD — release only from a commit that is already the
 // intended state of main.
+//
+// This repo publishes to two remotes (origin = the README's install source,
+// upstream = the org mirror). By default both are released to, and each remote
+// is checked independently, so a remote that missed a version catches up on the
+// next run.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -18,11 +24,12 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const REMOTE = 'origin';
+const DEFAULT_REMOTES = ['origin', 'upstream'];
 
 const args = process.argv.slice(2);
+const flag = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
 const DRY = args.includes('--dry-run');
-const ONLY = args.includes('--plugin') ? args[args.indexOf('--plugin') + 1] : null;
+const ONLY = flag('--plugin');
 
 const run = (cmd, ...a) =>
   execFileSync(cmd, a, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 26 }).trim();
@@ -39,28 +46,37 @@ if (run('git', 'status', '--porcelain')) die('working tree is dirty — commit o
 const branch = run('git', 'rev-parse', '--abbrev-ref', 'HEAD');
 if (branch !== 'main') die(`on branch "${branch}" — releases are cut from main.`);
 
-run('git', 'fetch', REMOTE, '--tags', '--quiet');
-const head = run('git', 'rev-parse', 'HEAD');
-const remoteHead = tryRun('git', 'rev-parse', `${REMOTE}/main`);
-if (remoteHead !== head) {
-  die(`HEAD (${head.slice(0, 8)}) differs from ${REMOTE}/main (${(remoteHead || 'missing').slice(0, 8)}) — push main first.`);
-}
+const configured = new Set(run('git', 'remote').split('\n').filter(Boolean));
+const remotes = (flag('--remote') ? [flag('--remote')] : DEFAULT_REMOTES).filter((r) => {
+  if (configured.has(r)) return true;
+  if (flag('--remote')) die(`no remote named "${r}".`);
+  return false; // a default remote that simply isn't set up here
+});
+if (remotes.length === 0) die(`none of the default remotes exist (${DEFAULT_REMOTES.join(', ')}).`);
 
-const repo = (() => {
-  const url = run('git', 'remote', 'get-url', REMOTE);
+const head = run('git', 'rev-parse', 'HEAD');
+
+const repoFor = (remote) => {
+  const url = run('git', 'remote', 'get-url', remote);
   const m = url.match(/[:/]([^/:]+\/[^/]+?)(?:\.git)?$/);
   return m ? m[1] : die(`cannot parse a GitHub repo out of "${url}"`);
-})();
+};
 
-// ------------------------------------------------------- collect candidates
+for (const remote of remotes) {
+  run('git', 'fetch', remote, '--tags', '--quiet');
+  const remoteHead = tryRun('git', 'rev-parse', `${remote}/main`);
+  if (remoteHead !== head) {
+    die(`HEAD (${head.slice(0, 8)}) differs from ${remote}/main (${(remoteHead || 'missing').slice(0, 8)}) — push main to ${remote} first.`);
+  }
+}
+
+// ------------------------------------------------------- versions to publish
 
 const marketplace = JSON.parse(readFileSync(join(ROOT, '.claude-plugin', 'marketplace.json'), 'utf8'));
 const declared = new Map(marketplace.plugins.map((p) => [p.name, p.version]));
 
-const existingTags = new Set(run('git', 'tag', '-l').split('\n').filter(Boolean));
-
 const pluginsDir = join(ROOT, 'plugins');
-const candidates = [];
+const wanted = [];
 
 for (const name of readdirSync(pluginsDir)) {
   if (ONLY && name !== ONLY) continue;
@@ -76,33 +92,27 @@ for (const name of readdirSync(pluginsDir)) {
     die(`${name}: plugin.json says ${version} but marketplace.json says ${inMarketplace ?? '(absent)'} — sync them before releasing.`);
   }
 
-  const tag = `${name}-v${version}`;
-  if (existingTags.has(tag)) continue; // already released
-  candidates.push({ name, version, tag });
+  wanted.push({ name, version, tag: `${name}-v${version}` });
 }
+if (ONLY && wanted.length === 0) die(`no plugin named "${ONLY}" under plugins/.`);
 
-if (candidates.length === 0) {
-  console.log(ONLY ? `${ONLY}: already released at its current version.` : 'Nothing to release — every plugin version is already tagged.');
-  process.exit(0);
-}
+// ------------------------------------------------------------------ releases
 
-// ------------------------------------------------------------------ release
-
-const previousTagFor = (name) => {
+const previousTagFor = (name, exclude) => {
   // Highest existing version tag for this plugin (numeric, so v1.10.0 > v1.9.0).
-  const tags = tryRun('git', 'tag', '-l', `${name}-v*`, '--sort=-v:refname');
-  return tags ? tags.split('\n')[0] : null;
+  const tags = (tryRun('git', 'tag', '-l', `${name}-v*`, '--sort=-v:refname') || '')
+    .split('\n').filter((t) => t && t !== exclude);
+  return tags[0] || null;
 };
 
-const notesFor = ({ name, version, tag }) => {
-  const prev = previousTagFor(name);
+const notesFor = ({ name, version, tag }, repo) => {
+  const prev = previousTagFor(name, tag);
   const range = prev ? `${prev}..HEAD` : 'HEAD';
   const log = tryRun('git', 'log', '--no-merges', '--format=- %s', range, '--', `plugins/${name}`) || '';
-  const changes = log.trim() || '- No commits scoped to this plugin since the previous tag.';
   return [
     `### Changes${prev ? ` since ${prev}` : ''}`,
     '',
-    changes,
+    log.trim() || '- No commits scoped to this plugin since the previous tag.',
     '',
     '### Install',
     '',
@@ -115,22 +125,45 @@ const notesFor = ({ name, version, tag }) => {
   ].join('\n');
 };
 
-for (const c of candidates) {
-  const notes = notesFor(c);
-  if (DRY) {
-    console.log(`\n=== would release ${c.tag} at ${head.slice(0, 8)} ===\n${notes}\n`);
+let published = 0;
+
+for (const remote of remotes) {
+  const repo = repoFor(remote);
+  // Must be fatal, not best-effort: a failed listing would look like "nothing is
+  // released yet" and re-publish every version.
+  const listed = tryRun('gh', 'release', 'list', '-R', repo, '--limit', '200', '--json', 'tagName', '--jq', '.[].tagName');
+  if (listed === null) die(`cannot list releases for ${repo} — is gh authenticated and the repo reachable?`);
+  const releasedTags = new Set(listed.split('\n').filter(Boolean));
+
+  const todo = wanted.filter((w) => !releasedTags.has(w.tag));
+  if (todo.length === 0) {
+    console.log(`${remote} (${repo}): up to date — every plugin version is already released.`);
     continue;
   }
-  run('git', 'tag', '-a', c.tag, '-m', c.tag);
-  run('git', 'push', REMOTE, c.tag);
-  execFileSync('gh', [
-    'release', 'create', c.tag,
-    '-R', repo,
-    '--title', `${c.name} ${c.version}`,
-    '--notes', notes,
-    `--latest=${c === candidates[candidates.length - 1]}`,
-  ], { cwd: ROOT, stdio: 'inherit' });
-  console.log(`released ${c.tag}`);
+
+  for (const c of todo) {
+    const notes = notesFor(c, repo);
+    if (DRY) {
+      console.log(`\n=== ${remote} (${repo}): would release ${c.tag} at ${head.slice(0, 8)} ===\n${notes}\n`);
+      continue;
+    }
+    // Tag must exist on the remote BEFORE `gh release create`, or gh silently
+    // creates it at the default-branch head instead of the commit we mean.
+    if (!tryRun('git', 'rev-parse', '-q', '--verify', `refs/tags/${c.tag}`)) {
+      run('git', 'tag', '-a', c.tag, '-m', c.tag);
+    }
+    run('git', 'push', remote, c.tag);
+    execFileSync('gh', [
+      'release', 'create', c.tag,
+      '-R', repo,
+      '--title', `${c.name} ${c.version}`,
+      '--notes', notes,
+      `--latest=${c === todo[todo.length - 1]}`,
+    ], { cwd: ROOT, stdio: 'inherit' });
+    console.log(`released ${c.tag} on ${repo}`);
+    published++;
+  }
 }
 
-if (DRY) console.log(`(dry run — ${candidates.length} release(s) would be created on ${repo})`);
+if (DRY) console.log('(dry run — nothing was tagged, pushed, or published)');
+else if (published === 0) console.log('Nothing to release.');

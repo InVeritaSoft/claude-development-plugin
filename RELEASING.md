@@ -3,6 +3,13 @@
 Every plugin version gets its own GitHub release. Releases are cut **locally** — this repo
 deliberately does not depend on GitHub Actions for releasing.
 
+Releases are published to **both** remotes, which carry identical tags and releases:
+
+| Remote | Repo | Role |
+|---|---|---|
+| `origin` | `Lolibai/claude-development-plugin` | the install source cited in `README.md` |
+| `upstream` | `InVeritaSoft/claude-development-plugin` | org mirror |
+
 ## Tag scheme
 
 One tag per plugin per version: `<plugin>-v<version>`.
@@ -24,26 +31,39 @@ across branch merges. Plugin versions are the unit that gets released.
    ```bash
    node --test tests/*.test.mjs
    ```
-3. Commit and push `main`.
+3. Commit and push `main` **to both remotes**:
+   ```bash
+   git push origin main && git push upstream main
+   ```
 4. Cut the release:
    ```bash
    node scripts/release.mjs --dry-run   # preview the notes, touch nothing
-   node scripts/release.mjs             # tag + push + create the GitHub release
+   node scripts/release.mjs             # tag + push + create the GitHub releases
    ```
 
-`release.mjs` scans every `plugins/*/.claude-plugin/plugin.json`, and for any version that has no
-matching tag it creates the tag on `HEAD`, pushes it, and opens a GitHub release whose notes are the
-commits scoped to that plugin's directory since its previous tag. Plugins already at a tagged
-version are skipped, so the script is safe to re-run.
+`release.mjs` scans every `plugins/*/.claude-plugin/plugin.json` and, for each remote independently,
+finds the versions that have no release yet. For those it creates the tag on `HEAD`, pushes it, and
+opens a GitHub release whose notes are the commits scoped to that plugin's directory since its
+previous tag. Versions already released on a given remote are skipped, so the script is safe to
+re-run — and a remote that missed a version catches up on the next run rather than staying behind.
 
-Release a single plugin with `--plugin <name>`.
+Scope a run with `--plugin <name>` or `--remote <name>`.
 
 ### What it refuses to do
 
 - Release from a dirty working tree.
 - Release from a branch other than `main`.
-- Release when `HEAD` differs from `origin/main` (push first — the tag must point at a pushed commit).
+- Release when `HEAD` differs from any target remote's `main` (push first — the tag must point at a
+  pushed commit).
 - Release a plugin whose `plugin.json` and `marketplace.json` versions disagree.
+- Continue when `gh release list` fails for a remote. That has to be fatal: an empty listing is
+  indistinguishable from "nothing released yet", which would re-publish every version.
+
+### One trap worth knowing
+
+`gh release create` will happily invent a missing tag **at the default-branch head**, not at the
+commit you meant. `release.mjs` therefore always pushes the tag before calling `gh`. Do the same if
+you ever cut one by hand.
 
 Requirements: `git`, and `gh` authenticated against the release remote. The script is
 dependency-free (Node built-ins only), like `onboard.mjs`.

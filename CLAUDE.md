@@ -17,7 +17,7 @@ The root `.claude-plugin/marketplace.json` registers both. Each plugin has its o
 its `plugin.json`, its entry in the root `marketplace.json`, and any docs that cite it.
 
 Each plugin version ships as its own GitHub release, tagged `<plugin>-v<version>`, cut locally with
-`node scripts/release.mjs` (never GitHub Actions). See **`RELEASING.md`**.
+`node scripts/release.mjs` (never GitHub Actions), published to both `origin` and `upstream`. See **`RELEASING.md`**.
 
 ## Commands
 
