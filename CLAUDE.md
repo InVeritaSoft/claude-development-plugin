@@ -16,6 +16,9 @@ The root `.claude-plugin/marketplace.json` registers both. Each plugin has its o
 `.claude-plugin/plugin.json`. **Versions live in three places that must stay in sync** for a plugin:
 its `plugin.json`, its entry in the root `marketplace.json`, and any docs that cite it.
 
+Each plugin version ships as its own GitHub release, tagged `<plugin>-v<version>`, cut locally with
+`node scripts/release.mjs` (never GitHub Actions). See **`RELEASING.md`**.
+
 ## Commands
 
 There is no build step and no install step. The test suite is `tests/`, run with Node's built-in
