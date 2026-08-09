@@ -145,10 +145,11 @@ function detectIntegrations() {
   return { superpowers: installed(/superpower/i), taskMaster: detectTaskMaster(), graphify };
 }
 
-// Task Master presence. A hard prerequisite for the SDLC intake pipeline (see
-// skills/shared/task-master-preflight.md), so detection is best-effort here and re-verified
-// at run time - never a reason to fail onboarding. "fork" matters: the Lolibai fork drives
-// task generation through the Claude Code subscription instead of a metered API key.
+// Task Master presence. Detection is best-effort here and re-verified at run time - never a
+// reason to fail onboarding. Its absence does not block the SDLC intake pipeline either: that
+// warns and marks the run incomplete (see skills/shared/task-master-preflight.md). "fork"
+// matters: the Lolibai fork drives task generation through the Claude Code subscription
+// instead of a metered API key.
 function detectTaskMaster() {
   const inProject = exists(".taskmaster");
   let mcp = false;
@@ -640,7 +641,7 @@ function renderMd(c) {
   L.push("");
   L.push("## Integrations");
   L.push("- Superpowers plugin: **" + yn(c.integrations.superpowers) + "** (when yes, skills prefer the superpowers process skills - TDD, systematic-debugging, verification-before-completion, requesting/receiving-code-review, dispatching-parallel-agents, finishing-a-development-branch - and fall back to the built-in checkpoints when no; see skills/shared/superpowers-integration.md)");
-  L.push("- Task Master: **" + v(c.integrations.taskMaster) + "** (mcp/cli/none; detection is best-effort and re-verified at run time). A HARD prerequisite for the SDLC intake pipeline - it does not degrade, it stops and asks you to install. Use the Lolibai/claude-task-master fork: it drives task generation through the Claude Code subscription instead of a metered API key. See skills/shared/task-master-preflight.md.");
+  L.push("- Task Master: **" + v(c.integrations.taskMaster) + "** (mcp/cli/none; detection is best-effort and re-verified at run time). The SDLC intake pipeline needs it to produce a dependency-ordered task tree; without it that pipeline warns, writes a prose plan instead, and marks the run incomplete - it never blocks. Use the Lolibai/claude-task-master fork: it drives task generation through the Claude Code subscription instead of a metered API key. See skills/shared/task-master-preflight.md.");
   L.push("- Graphify: **" + yn(c.integrations.graphify) + "** (recommended, non-blocking; graph layer over the harvested corpus - see skills/shared/corpus-index.md)");
   L.push("");
   L.push("## Project recovery / runbook notes");

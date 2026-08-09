@@ -1,8 +1,8 @@
 # SDLC Intake Pipeline — whole-knowledge harvest → Requirements → Designs → PRD → Dev Plan
 
 Read `.claude/stack.md` first; use its values; never assume a specific tool; if a needed capability is
-`none`, skip those steps — **except the three hard prerequisites below**; if the config is missing,
-run the `onboard` skill and stop.
+`none`, skip those steps — **except the warn-and-degrade tools below**, whose absence changes the
+deliverable and must be said out loud; if the config is missing, run the `onboard` skill and stop.
 
 ## What this is
 
