@@ -96,6 +96,7 @@ Dispatch all in **one message** (parallel):
    - Write the table into Team Briefing `## Design links` with columns: `url | fileKey | nodeId | contextHeading | relevant?`.
    - Pass only the **relevant** set to downstream design-tool calls (e.g. Figma `get_design_context`, `get_screenshot`) when the Coder/Analyzer phase needs visual ground truth. Cache results by `fileKey:nodeId` for the session — never re-fetch the same node twice. List the candidates so the user can promote any on demand.
    - If `${design.figma}` is disabled, or no design URLs found across all pages: write `## Design links` with `none found` / `n/a` — do not silently skip.
+   - **Then audit what you harvested** with the `design-link-audit` skill (single-item scope). Harvesting proves a URL *exists*; the audit proves it is usable — node-precise, resolvable, and not older than the AC it claims to specify. A file-level link, a deleted node, or a design last touched before the AC changed all pass the harvest and give the Coder nothing. Write the verdict + any `blocker`/`risk` findings into `## Design links`; when the fix is `design_relevant: yes` and the verdict is `gaps-found`, say so in the briefing rather than proceeding as though visual ground truth exists.
 
 Rules:
 - Issue Description Gherkin → implement in repo, run to pass (not docs-only)
@@ -514,7 +515,7 @@ Agents are defined in `.claude/agents/` and auto-discovered by Claude Code. Spaw
 
 | Role | Agent name | Mode | Owns |
 |---|---|---|---|
-| **Issue Harvester** | `jira-harvester` | read-only connector | Phase 0: issue tracker + linked docs + design-URL extraction; structured AC YAML (agent id retained; adapts to `${issueTracker.tool}`) |
+| **Issue Harvester** | `issue-harvester` | read-only connector | Phase 0: issue tracker + linked docs + design-URL extraction; structured AC YAML (agent id retained; adapts to `${issueTracker.tool}`) |
 | **Context Scout / DC Auditor** | `context-scout` | read-only | Phase 1.5 stage 1 + Phase DC: touched-surface map (diff, dep graph, layer violations, test-coverage map); per-AC verdict YAML |
 | **Analyzer** | `analyzer` | read-only | Phase 1.5 stage 2: blast radius, compliance/Clean-Arch/data-access risk (e.g. HIPAA/PHI + RLS where the domain applies), scope-creep detection, design-component ID, Coder brief (consumes context-scout + the harvested AC) |
 | **Coverage Auditor** | `coverage-auditor` | read-only | Phase 3 pre-check: Gherkin gap detection vs AC + touched surface; AC coverage; unit test gaps |

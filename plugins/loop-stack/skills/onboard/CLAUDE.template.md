@@ -150,6 +150,18 @@ pre-plan a session. Skills read `.claude/stack.md`; anything the config marks `n
 (Adjust to the skills actually installed; the loop stack ships generic, config-driven versions of
 each tool-specific skill.)
 
+## Never write a work list into this file (or any generated file)
+
+This file, `.claude/stack.md`, `.claude/loops/*.md`, and every **cron prompt** carry the *query* that
+selects work — never the *result* of running it. No issue keys, no PR numbers, no "the 4 tickets in
+the sprint". Work selection is always `${issueTracker.myWorkQuery}` (+ type/status filters), identity
+is always `@me`, and anything that would be wrong tomorrow gets read at tick time, not written down.
+
+This matters more than it looks: a loop whose prompt names concrete issue keys ticks on schedule,
+reports work, and processes that frozen set **forever**, silently never picking up anything new — no
+error, no warning, nothing to notice until someone asks why a new ticket sat untouched all day. If you
+edit a loop spec or register a cron, re-read what you wrote and confirm the query survived.
+
 ## Dev commands
 
 Don't hardcode commands here — read `.claude/stack.md` → **Commands** (install, typecheck, lint,

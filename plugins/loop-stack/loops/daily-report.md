@@ -40,7 +40,7 @@ code, PRs, branches, or tracker state.** You own this file — edit it, then re-
 3. **Deliver:**
    - `${reporting.destination}` set (e.g. a tracker page / issue comment / channel) → post the summary there.
    - **Always** also send a `PushNotification` with the one-line headline, e.g.
-     `"3 merged, 2 verified, 1 parked (RESC-1234: no AC coverage)"`.
+     `"3 merged, 2 verified, 1 parked (<KEY>: no AC coverage)"`.
 4. **Quiet-day rule:** if nothing happened in the window **and** nothing is parked → send nothing.
    If parked items exist, ALWAYS report — parked items repeat in every report until a human clears them.
 

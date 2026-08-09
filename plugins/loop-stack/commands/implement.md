@@ -28,7 +28,7 @@ Skip only if the graphify CLI is unavailable — note it explicitly and fall bac
 Two phases run before Step 1, in order — the same contract the autonomous IMPLEMENT loop uses:
 
 1. **Harvest.** When an issue key/URL is in play (`${issueTracker.tool}` ≠ none), dispatch the
-   issue harvester agent (**Harvey**, `agents/jira-harvester.md`) for the full ticket context —
+   issue harvester agent (**Harvey**, `agents/issue-harvester.md`) for the full ticket context —
    description, comments, subtask/parent, Epic chain, related issues, linked docs pages, design
    links — as structured AC YAML. No issue key → skip this phase; the provided spec/requirements
    stand in for the harvest.
@@ -77,6 +77,7 @@ Trivial one-file changes may run inline, still under the brief.
     - If design links are provided in chat, use the design tool's MCP (navigating design links via a browser is forbidden) to extract context, gather design assets, and apply relevant tokens, variables, components, and accessibility specifications.
     - Always enrich the implementation and review with all available design-tool MCP features (inspecting layers, extracting CSS/variables, copying component specs, accessibility metadata, etc.).
     - Prioritize best practices in accessibility, typing, and test organization, drawing directly from all relevant information provided via the design-tool MCP.
+    - **Audit the story's design references before building** with the `design-link-audit` skill. UI-shaped work with no usable design is an unstated specification: whoever implements it invents the visual spec, and the invention is only discovered at review. Report the verdict; when it is `gaps-found` on UI-shaped work, say what is missing instead of building past it silently.
     - If no design tool is configured, work from the assets/spec the user provides.
 
 ## Step 2: Directory Structure (Example)

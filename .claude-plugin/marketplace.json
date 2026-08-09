@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "dev-tools",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Development tooling for Claude Code: the autonomous dev loop stack, CSS/design-drift auditing, mobile platform (iOS HIG + Material 3) guidelines, and shared-database discipline for one-instance-many-projects setups.",
   "owner": {
     "name": "Mykhailo"
@@ -10,38 +10,89 @@
     {
       "name": "loop-stack",
       "source": "./plugins/loop-stack",
-      "description": "Universal, config-driven autonomous dev loop stack: session crons that fix assigned bugs, implement sprint stories behind a mandatory architect brief, verify against AC + deploys, review requested PRs, shepherd your own PRs to merge, repair failed deployments, sync fix-base branches, sweep a small time-boxed batch of e2e scenarios per tick into a rolling suite-health report, and post a daily standup report. Project specifics live in .claude/stack.md (written by the onboard skill). Optionally delegates shared disciplines (TDD, debugging, verification, code review) to the superpowers plugin when installed.",
-      "version": "1.6.1",
-      "author": { "name": "Mykhailo" },
+      "description": "Universal, config-driven autonomous dev loop stack: session crons that fix assigned bugs, implement sprint stories behind a mandatory architect brief, verify against AC + deploys, review requested PRs, shepherd your own PRs to merge, repair failed deployments, sync fix-base branches, sweep a small time-boxed batch of e2e scenarios per tick into a rolling suite-health report, and post a daily standup report. Project specifics live in .claude/stack.md (written by the onboard skill). Optionally delegates shared disciplines (TDD, debugging, verification, code review) to the superpowers plugin when installed. Plus the on-demand SDLC intake pipeline (/sdlc): sweep the whole tracker + docs space into a resumable corpus, index it (qdrant/pgvector, optional graphify graph), harvest it in depth, and synthesize Requirements, Designs, a PRD, and a Task Master dev plan.",
+      "version": "1.7.0",
+      "author": {
+        "name": "Mykhailo"
+      },
       "category": "development",
-      "keywords": ["autonomous", "loops", "cron", "devfix", "pr-review", "ci", "jira", "workflow"]
+      "keywords": [
+        "autonomous",
+        "loops",
+        "cron",
+        "devfix",
+        "pr-review",
+        "ci",
+        "jira",
+        "workflow",
+        "sdlc",
+        "requirements",
+        "prd",
+        "task-master",
+        "confluence"
+      ]
     },
     {
       "name": "css-drift-auditor",
       "source": "./plugins/css-drift-auditor",
       "description": "Universal, framework-agnostic CSS/design-drift audit pipeline: maps components and raw HTML tags, renders components in Storybook, extracts post-cascade computed styles, and flags inconsistent values for tokenization.",
       "version": "0.4.2",
-      "author": { "name": "Mykhailo" },
+      "author": {
+        "name": "Mykhailo"
+      },
       "category": "development",
-      "keywords": ["css", "design-tokens", "drift", "storybook", "audit", "consistency", "react", "angular"]
+      "keywords": [
+        "css",
+        "design-tokens",
+        "drift",
+        "storybook",
+        "audit",
+        "consistency",
+        "react",
+        "angular"
+      ]
     },
     {
       "name": "mobile-platform-guidelines",
       "source": "./plugins/mobile-platform-guidelines",
       "description": "Apple Human Interface Guidelines (HIG) and Android Material Design 3 rules for building native-feeling mobile UI: audits screens, components, navigation, permissions, and notifications against the relevant platform reference before implementation.",
       "version": "1.0.0",
-      "author": { "name": "Mykhailo" },
+      "author": {
+        "name": "Mykhailo"
+      },
       "category": "development",
-      "keywords": ["mobile", "ios", "android", "hig", "material-design", "react-native", "expo", "ui", "accessibility"]
+      "keywords": [
+        "mobile",
+        "ios",
+        "android",
+        "hig",
+        "material-design",
+        "react-native",
+        "expo",
+        "ui",
+        "accessibility"
+      ]
     },
     {
       "name": "shared-database-discipline",
       "source": "./plugins/shared-database-discipline",
       "description": "Rules for running one shared Postgres/MongoDB behind many projects instead of a database container per repo: per-environment isolation enforced with REVOKE rather than convention, a three-role credential model where apps never run as owner, connection-string formats that silently break (Npgsql rejects postgresql:// URIs; semicolon values must not be shell-sourced), and self-hosted-runner deploy safety.",
       "version": "1.0.0",
-      "author": { "name": "Mykhailo" },
+      "author": {
+        "name": "Mykhailo"
+      },
       "category": "development",
-      "keywords": ["database", "postgres", "mongodb", "connection-string", "migrations", "self-hosted-runner", "docker-compose", "devops", "homelab"]
+      "keywords": [
+        "database",
+        "postgres",
+        "mongodb",
+        "connection-string",
+        "migrations",
+        "self-hosted-runner",
+        "docker-compose",
+        "devops",
+        "homelab"
+      ]
     }
   ]
 }

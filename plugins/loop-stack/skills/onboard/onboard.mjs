@@ -113,16 +113,36 @@ function detectCi() {
 // Optional plugin integrations. Fail-soft: any error yields false, never throws.
 function detectIntegrations() {
   const home = process.env.HOME || process.env.USERPROFILE || "";
-  const hit = (dir) => { try { return fs.readdirSync(dir).some((e) => /superpower/i.test(e)); } catch { return false; } };
+  const hit = (dir, re) => { try { return fs.readdirSync(dir).some((e) => re.test(e)); } catch { return false; } };
   const bases = home ? [path.join(home, ".claude/plugins/cache"), path.join(home, ".claude/plugins/data")] : [];
-  let superpowers = false;
-  for (const base of bases) {
-    if (hit(base)) { superpowers = true; break; }
-    let subs = [];
-    try { subs = fs.readdirSync(base, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => path.join(base, e.name)); } catch { subs = []; }
-    if (subs.some(hit)) { superpowers = true; break; }
+  const installed = (re) => {
+    for (const base of bases) {
+      if (hit(base, re)) return true;
+      let subs = [];
+      try { subs = fs.readdirSync(base, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => path.join(base, e.name)); } catch { subs = []; }
+      if (subs.some((d) => hit(d, re))) return true;
+    }
+    return false;
+  };
+  // graphify ships as a skill, not only a plugin - check the user's skills dir too.
+  const skillDir = home ? path.join(home, ".claude/skills") : "";
+  const graphify = installed(/graphify/i) || (skillDir ? hit(skillDir, /graphify/i) : false);
+  return { superpowers: installed(/superpower/i), taskMaster: detectTaskMaster(), graphify };
+}
+
+// Task Master presence. A hard prerequisite for the SDLC intake pipeline (see
+// skills/shared/task-master-preflight.md), so detection is best-effort here and re-verified
+// at run time - never a reason to fail onboarding. "fork" matters: the Lolibai fork drives
+// task generation through the Claude Code subscription instead of a metered API key.
+function detectTaskMaster() {
+  const inProject = exists(".taskmaster");
+  let mcp = false;
+  for (const f of [".mcp.json", ".claude/settings.json"]) {
+    try { if (/task-?master/i.test(fs.readFileSync(path.resolve(ROOT, f), "utf8"))) { mcp = true; break; } } catch { /* absent */ }
   }
-  return { superpowers };
+  if (mcp) return "mcp";
+  if (inProject) return "cli";
+  return "none";
 }
 
 // ---------- observation ----------
@@ -402,11 +422,17 @@ function defaultsFrom(d, prev) {
       testManagement: (p.testing && p.testing.testManagement) || "none",
     },
     memory: (p.memory) || { store: "none", collectionNaming: "", note: "" },
+    docs: (p.docs) || { platform: "none", connection: "", spaces: [], note: "" },
+    knowledge: (p.knowledge) || { graph: d.integrations.graphify ? "graphify" : "none", vault: "" },
     ci: { host: (p.ci && p.ci.host) || d.ci.host, deployWorkflows: (p.ci && p.ci.deployWorkflows) || { default: d.ci.deployWorkflows }, deployPlatforms: (p.ci && p.ci.deployPlatforms) || [], deployGate: (p.ci && typeof p.ci.deployGate === "boolean") ? p.ci.deployGate : false, humanGatedEnvs: (p.ci && p.ci.humanGatedEnvs) || ["prod"] },
     design: (p.design) || { figma: false, note: "" },
     reporting: (p.reporting) || { daily: true, destination: "none" },
     compliance: (p.compliance) || "none",
-    integrations: { superpowers: (p.integrations && typeof p.integrations.superpowers === "boolean") ? p.integrations.superpowers : d.integrations.superpowers },
+    integrations: {
+      superpowers: (p.integrations && typeof p.integrations.superpowers === "boolean") ? p.integrations.superpowers : d.integrations.superpowers,
+      taskMaster: (p.integrations && p.integrations.taskMaster) || d.integrations.taskMaster,
+      graphify: (p.integrations && typeof p.integrations.graphify === "boolean") ? p.integrations.graphify : d.integrations.graphify,
+    },
     recoveryNotes: (p.recoveryNotes) || "",
   };
 }
@@ -466,7 +492,13 @@ async function prompt(cfg, conflicts) {
   cfg.testing.e2e.runner = await ask("E2E runner (playwright/cypress/none)", cfg.testing.e2e.runner);
   if (cfg.testing.e2e.runner !== "none") cfg.testing.e2e.tagConvention = await ask("  E2E tag convention", cfg.testing.e2e.tagConvention);
   cfg.testing.testManagement = await ask("Test-management sync (zephyr/testrail/none)", cfg.testing.testManagement);
-  cfg.memory.store = await ask("Vector-memory store (qdrant/none)", cfg.memory.store);
+  cfg.memory.store = await ask("Vector-memory store (qdrant/pgvector/none)", cfg.memory.store);
+  cfg.docs.platform = await ask("Docs/knowledge-base platform (confluence/notion/repo/none)", cfg.docs.platform);
+  if (cfg.docs.platform !== "none") {
+    cfg.docs.connection = await ask("  Docs connection/host", cfg.docs.connection);
+    cfg.docs.spaces = (await ask("  Docs space keys to sweep, comma-sep", cfg.docs.spaces.join(","))).split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  cfg.knowledge.vault = await ask("Obsidian vault path for the knowledge mirror (blank = none)", cfg.knowledge.vault);
   cfg.design.figma = /^(y|yes|true)$/i.test(await ask("Use Figma for designs? (y/n)", cfg.design.figma ? "y" : "n"));
   cfg.reporting.destination = await ask("Daily-report destination (none = push notification only; or a channel/page/issue)", cfg.reporting.destination || "none");
   cfg.compliance = await ask("Data-protection regime (none/HIPAA/GDPR/PCI/...)", cfg.compliance || "none");
@@ -555,6 +587,17 @@ function renderMd(c) {
   L.push("");
   L.push("## Vector memory / knowledge store");
   L.push("- Store: **" + v(c.memory.store) + "** | collections: " + v(c.memory.collectionNaming) + " | " + (c.memory.note || ""));
+  L.push("- Supported stores: qdrant, pgvector. Required (not optional) for a whole-knowledge SDLC harvest of 300+ records - see skills/shared/corpus-index.md.");
+  L.push("");
+  L.push("## Docs / knowledge base");
+  L.push("- Platform: **" + v(c.docs.platform) + "** | connection: " + v(c.docs.connection) + (c.docs.note ? " | " + c.docs.note : ""));
+  L.push("- Spaces to sweep: " + list(c.docs.spaces));
+  L.push("- Read by the docs-sweeper (breadth) and docs-harvester (depth) agents; none = both are no-ops.");
+  L.push("");
+  L.push("## Knowledge layers (SDLC intake)");
+  L.push("- Graph: **" + v(c.knowledge.graph) + "** (graphify; recommended, non-blocking - adds community clustering and centrality over the harvested corpus)");
+  L.push("- Obsidian vault mirror: " + v(c.knowledge.vault) + " (blank = no mirror; human-readable review surface for the harvest)");
+  L.push("- Corpus lives in .claude/sdlc/ (gitignored - may contain sensitive material; never commit it).");
   L.push("");
   L.push("## CI / deploy");
   L.push("- CI host: **" + v(c.ci.host) + "**");
@@ -573,6 +616,8 @@ function renderMd(c) {
   L.push("");
   L.push("## Integrations");
   L.push("- Superpowers plugin: **" + yn(c.integrations.superpowers) + "** (when yes, skills prefer the superpowers process skills - TDD, systematic-debugging, verification-before-completion, requesting/receiving-code-review, dispatching-parallel-agents, finishing-a-development-branch - and fall back to the built-in checkpoints when no; see skills/shared/superpowers-integration.md)");
+  L.push("- Task Master: **" + v(c.integrations.taskMaster) + "** (mcp/cli/none; detection is best-effort and re-verified at run time). A HARD prerequisite for the SDLC intake pipeline - it does not degrade, it stops and asks you to install. Use the Lolibai/claude-task-master fork: it drives task generation through the Claude Code subscription instead of a metered API key. See skills/shared/task-master-preflight.md.");
+  L.push("- Graphify: **" + yn(c.integrations.graphify) + "** (recommended, non-blocking; graph layer over the harvested corpus - see skills/shared/corpus-index.md)");
   L.push("");
   L.push("## Project recovery / runbook notes");
   L.push(c.recoveryNotes || "_(none - add project-specific recovery steps here; skills reference this section instead of baking them in.)_");
@@ -609,11 +654,14 @@ fs.writeFileSync(path.resolve(OUT, "stack.md"), renderMd(cfg));
 const stateDir = path.resolve(OUT, "loops", "state");
 fs.mkdirSync(stateDir, { recursive: true });
 const gitignorePath = path.resolve(ROOT, ".gitignore");
-const stateIgnore = ".claude/loops/state/";
-const gi = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, "utf8") : "";
-if (!gi.split("\n").some((l) => l.trim() === stateIgnore || l.trim() === stateIgnore.slice(0, -1))) {
-  fs.writeFileSync(gitignorePath, gi + (gi && !gi.endsWith("\n") ? "\n" : "") + stateIgnore + "\n");
-  console.log("  Added " + stateIgnore + " to .gitignore (per-project loop state).");
+// .claude/sdlc/ holds the SDLC intake corpus: harvested issues and docs pages verbatim. That can
+// include customer names, internal decisions, and (in regulated projects) sensitive data - so it is
+// ignored before anything can write to it, not after.
+for (const [ignore, why] of [[".claude/loops/state/", "per-project loop state"], [".claude/sdlc/", "SDLC harvest corpus - may contain sensitive material"]]) {
+  const gi = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, "utf8") : "";
+  if (gi.split("\n").some((l) => l.trim() === ignore || l.trim() === ignore.slice(0, -1))) continue;
+  fs.writeFileSync(gitignorePath, gi + (gi && !gi.endsWith("\n") ? "\n" : "") + ignore + "\n");
+  console.log("  Added " + ignore + " to .gitignore (" + why + ").");
 }
 
 // Materialize the loop specs into the project. Cron prompts reference .claude/loops/<spec>.md,
@@ -649,6 +697,33 @@ if (!fs.existsSync(claudeMdPath)) {
   }
 } else {
   console.log("  CLAUDE.md already exists — left untouched. See skills/onboard/CLAUDE.template.md for the universal version.");
+}
+
+// Frozen-work guard. A generated per-project file must carry the QUERY that selects work, never
+// the RESULT of running it. When a concrete issue key lands in stack.md / a loop spec / CLAUDE.md,
+// the loops tick forever against that frozen set: they look healthy, report work, and silently
+// never pick up anything new. The failure is invisible for as long as nobody asks why a new ticket
+// sat untouched. Placeholders (<KEY>, CHECKPOINT-2, the documented PROJ-123 example) are fine; a
+// key matching this project's own prefix is not. See skills/shared/no-hardcoded-instructions.md.
+const KEY_RE = /\b[A-Z][A-Z0-9]{1,9}-[0-9]{1,5}\b/g;
+const ALLOWED_KEYS = /^(CHECKPOINT|DC|PR|KEY|PROJ|ENG|TEAM|ABC)-/;
+const scanned = [path.resolve(OUT, "stack.md"), claudeMdPath, ...(() => {
+  try { return fs.readdirSync(path.resolve(OUT, "loops")).filter((f) => f.endsWith(".md")).map((f) => path.resolve(OUT, "loops", f)); } catch { return []; }
+})()];
+const frozen = [];
+for (const file of scanned) {
+  let body = ""; try { body = fs.readFileSync(file, "utf8"); } catch { continue; }
+  for (const hit of new Set(body.match(KEY_RE) || [])) {
+    if (ALLOWED_KEYS.test(hit)) continue;
+    const prefix = (cfg.issueTracker && cfg.issueTracker.keyPrefix) || "";
+    // Flag anything that looks like a live key; a match on this project's own prefix is certain.
+    frozen.push({ file: path.relative(ROOT, file), hit, certain: !!prefix && hit.startsWith(prefix + "-") });
+  }
+}
+if (frozen.length) {
+  console.log("\n  ! Possible frozen work list in generated files - loops would tick against a fixed set and silently never pick up new work:");
+  for (const f of frozen) console.log("      " + f.file + ": " + f.hit + (f.certain ? "  <- matches this project's key prefix" : ""));
+  console.log("    Replace concrete keys with the query/token (${issueTracker.myWorkQuery}, <KEY>). See skills/shared/no-hardcoded-instructions.md.");
 }
 
 // No test harness detected -> point at the scaffolder (Playwright + Gherkin E2E, unit project).

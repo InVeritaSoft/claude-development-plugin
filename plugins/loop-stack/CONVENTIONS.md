@@ -49,6 +49,10 @@ Replace every hardcoded specific with the config reference. Mention the old conc
 | Figma | `design.figma` |
 | docker/supabase recovery runbook | `recoveryNotes` |
 | superpowers process skills (TDD, verify, review, agent fan-out) | `integrations.superpowers` (yes → prefer them; no/absent → built-in checkpoints; see `skills/shared/superpowers-integration.md`) |
+| Confluence (as the docs/knowledge base) | `docs.platform` + `docs.connection` + `docs.spaces` (none → the docs sweeper/harvester are no-ops) |
+| Qdrant-only vector memory | `memory.store` — **qdrant or pgvector**, co-equal (see `skills/shared/corpus-index.md`) |
+| graphify / an Obsidian vault | `knowledge.graph` / `knowledge.vault` (both optional layers over the harvest corpus) |
+| Task Master ("just run task-master") | `integrations.taskMaster` (mcp/cli/none; see `skills/shared/task-master-preflight.md`) |
 
 ## Tool-specific skills → generic, config-driven equivalents
 
@@ -96,9 +100,24 @@ Current files: `my-bugs-verify-parked.txt`, `my-stories-verify-parked.txt`, `my-
 `e2e-sweep-health.json`, `e2e-sweep-report.md`, `e2e-sweep-blocked.txt`. A new loop adds its file here and lists it in
 `stop-loop-stack`'s state-file table.
 
+## The third behaviour: warn-and-degrade
+
+`skip` and `ask` are not the only options. The SDLC intake pipeline (`commands/sdlc.md`) introduces a
+middle setting for tools whose absence does not stop the work but does change the deliverable:
+
+| Capability is `none` | Behaviour | Example |
+|---|---|---|
+| ...and the step is optional | **skip silently** | no memory store → no memory writes |
+| ...and the step is testing | **surface + offer the scaffold** | `skills/shared/green-gate.md` |
+| ...and the step's *output* degrades | **warn early, continue, mark the run `incomplete`** | no Task Master → prose plan, no task tree |
+
+Warn-and-degrade never blocks the user and never fails silently. The rule is: say up front what the
+run will *not* contain, produce everything else, and name the missing tool and its cost in the final
+report. Owned by `skills/shared/task-master-preflight.md` and `skills/shared/corpus-index.md`.
+
 ## Rules of thumb
 
-1. **Skip, don't ask** — *except testing.* If the config says a capability is `none`, the step is a
+1. **Skip, don't ask** — *except testing, and except warn-and-degrade tools (above).* If the config says a capability is `none`, the step is a
    no-op. The lone exception is `testing.*`: an absent unit/E2E harness is surfaced and the scaffold
    is offered (`skills/shared/green-gate.md`), never silently skipped.
 2. **Examples, not assumptions.** "your issue tracker (e.g. Jira/GitHub Issues)" — never "Jira".
@@ -106,3 +125,8 @@ Current files: `my-bugs-verify-parked.txt`, `my-stories-verify-parked.txt`, `my-
 4. **Keep the workflow logic.** Generalize *what tool*, not *how the loop reasons*.
 5. **Read once per run.** Load `.claude/stack.md` at the start of a skill, not per step.
 6. **State is per-project.** Loop state goes in `.claude/loops/state/`, never `/tmp` (see above).
+7. **Generated files carry the query, never its result.** Nothing written into a target project —
+   `stack.md`, `CLAUDE.md`, `loops/*.md`, or a **cron prompt** — may contain concrete issue keys, PR
+   numbers, or work lists. A loop whose prompt names four issue keys ticks forever against those four
+   and silently never picks up new work, with no error to notice. See
+   `skills/shared/no-hardcoded-instructions.md`; `onboard.mjs` greps the generated files and warns.

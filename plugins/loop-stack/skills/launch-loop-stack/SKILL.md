@@ -35,6 +35,24 @@ Create the session-scoped recurring crons that drive the autonomous **"my work i
 
 These are **session-only** (auto-expire after 7 days, stop when the session ends). They never force-merge or override branch protection.
 
+> ## The cron prompt carries the QUERY, never its RESULT
+>
+> **Never resolve `${issueTracker.myWorkQuery}` (or any work-selection step) while composing a cron
+> prompt.** Do not look up what is currently assigned and inline the keys "so the loop knows what to
+> do". The prompt must contain the token or the query text; the *tick* runs it.
+>
+> A cron whose prompt names concrete issue keys ticks on schedule, reports work, and processes that
+> frozen set forever — it never picks up anything new, and **nothing errors or warns**. The only
+> symptom is that new tickets are silently never started, which typically costs a full day before
+> anyone thinks to read the cron's prompt text.
+>
+> The same applies to PR numbers, branch names, run ids, and usernames: `@me`, not a handle.
+> Full contract + the read-back verification: `skills/shared/no-hardcoded-instructions.md`.
+>
+> **Verify after registering:** read each created cron's prompt back and confirm it still contains
+> `${issueTracker.myWorkQuery}` / the query text and no literal keys. Registering is not the same as
+> registering correctly.
+
 **Scoping invariant — USER-SCOPED + active iteration, never the whole backlog.** Every tracker-querying
 loop selects work with `${issueTracker.myWorkQuery}` (e.g. Jira `assignee = currentUser() AND sprint in
 openSprints()`), filtered by issue type + status. Don't broaden it to the historical backlog. PR-REVIEW
