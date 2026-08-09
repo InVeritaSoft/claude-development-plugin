@@ -34,7 +34,7 @@ graphify_context: {...}
 
 ### 1. Inventory the shared-component primitives
 
-Invoke the `lego-philosophy` skill (the component-reuse convention: smart/dumb split + shared component inventory), then consult the project's own inventory documented in the repo (e.g. CLAUDE.md). Know which shared/design-system components (e.g. a `Resc*`-style namespaced set) already exist before mapping anything to "new".
+Invoke the `lego-philosophy` skill (the component-reuse convention: smart/dumb split + shared component inventory), then consult the project's own inventory documented in the repo (e.g. CLAUDE.md). Know which shared/design-system components (e.g. a project-namespaced set such as `<Prefix>*`) already exist before mapping anything to "new".
 
 ### 2. Map every design frame/component
 

@@ -80,7 +80,10 @@ building blocks, and route to **`scaffold-test-projects`**:
 > intent methods like `login(email, password)` — never selectors), typed **web-element wrappers**
 > (every `Locator` touched in one place, with auto-waiting `click` / `fill` / `expectVisible`), and
 > **hooks/fixtures** owning setup, teardown, auth state, and data seeding — so a markup change
-> touches one line, not every step file. Want me to run `scaffold-test-projects`?
+> touches one line, not every step file. For a **.NET** app — or if you want a suite that is green
+> before it is customized — the faster route is forking `git@github.com:Lolibai/e2e-adoption.git`
+> (Reqnroll + Playwright, container-first) and running its `/e2e-onboard`. Want me to run
+> `scaffold-test-projects`?
 
 Then:
 - **User accepts** → run `scaffold-test-projects`, land its two smoke checkpoints (E2E-SCAFFOLD +

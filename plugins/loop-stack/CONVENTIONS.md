@@ -23,24 +23,24 @@ Replace every hardcoded specific with the config reference. Mention the old conc
 
 | Was hardcoded | Use from `.claude/stack.md` |
 |---|---|
-| Jira; `cloudId rescuid.atlassian.net` | issue tracker `tool` + `connection` |
-| `RESC-<n>`, `RESC#` | `keyPrefix` + `<KEY>` |
+| Jira; a specific `cloudId` / site host | issue tracker `tool` + `connection` |
+| a literal key form like `ABC-<n>` / `ABC#` | `keyPrefix` + `<KEY>` |
 | `assignee = currentUser() AND sprint in openSprints()` | issue tracker `myWorkQuery` |
 | transition ids `21 / 9 / 2` | `states` + `transitionIds` |
 | issue types "Story / Task" the loops may implement | `issueTypes.implement` (set at onboarding; [] disables the IMPLEMENT loop) |
 | statuses "To Do / In Progress / Dev Testing / Ready for Testing" | `states.{todo,inProgress,verify,verified,done}` |
 | reassign to reporter | `handoffAssignee` |
-| `RescueId/RescueIdMain` | `project.repo` |
-| GitHub users `Lolibai`, `Bohdan-Demchuk` | self-identity: the host's authenticated user (`@me` for `gh`) — NEVER a committed username, or shared config makes every team member act on one person's PRs; `project.username` only as fallback for hosts without `@me`; teammate filters: `vcs.prReview.watchAuthors` |
+| a literal `<org>/<repo>` | `project.repo` |
+| literal GitHub handles | self-identity: the host's authenticated user (`@me` for `gh`) — NEVER a committed username, or shared config makes every team member act on one person's PRs; `project.username` only as fallback for hosts without `@me`; teammate filters: `vcs.prReview.watchAuthors` |
 | `develop`, `stage`, `align-develop`, `align-stage` | `vcs.integrationBranch`, `envBranches`, `fixBaseBranches` |
-| `<type>/RESC-<n>` branch | `vcs.branchNaming` |
+| a literal `<type>/ABC-<n>` branch form | `vcs.branchNaming` |
 | `pnpm` / `pnpm typecheck` / `pnpm lint` | `commands.*` |
 | React / Angular / Tailwind | `frontend.frameworks`, `frontend.styling` |
 | manager / admin / card / landing | `frontend.apps` |
 | Supabase, migrations dir | `backend.platform`, `backend.migrationsDir` |
 | Deno edge, `supabase stop && supabase start`, container names | `edge.*` + `recoveryNotes` |
 | vitest, `tests/ui-tests/src/unit/<app>` | `testing.unit.*` |
-| Playwright, `npx bddgen`, `@RESC-<n>` | `testing.e2e.*` (`tagConvention`) |
+| Playwright, `npx bddgen`, a literal `@ABC-<n>` tag | `testing.e2e.*` (`tagConvention`) |
 | "run the tests before you're done" | `skills/shared/green-gate.md` — full unit + full E2E green, or offer the scaffold |
 | Zephyr | `testing.testManagement` |
 | Qdrant | `memory.store` |

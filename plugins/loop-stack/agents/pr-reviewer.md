@@ -97,7 +97,7 @@ For TypeScript projects (adapt to the configured language otherwise):
 - Duplicated logic that already exists in a shared util/schema/component → major
 - `data`, `obj`, `handle`, `manager`, `helper` variable names → minor
 - Inline styles on non-dynamic values → minor (frontend only, per `${frontend.*}`)
-- Raw element stacking where a shared/design-system component exists (e.g. a `Resc*` primitive) → minor (frontend only)
+- Raw element stacking where a shared/design-system component exists (e.g. a project-namespaced primitive) → minor (frontend only)
 
 #### Assertion integrity
 - Weakened assertions (e.g. `expect(true).toBe(true)`, empty matchers) → blocking

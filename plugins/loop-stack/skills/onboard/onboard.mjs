@@ -104,6 +104,21 @@ function detectTesting() {
   for (const d of ["tests/ui-tests", "e2e", "tests/e2e", "cypress"]) if (exists(d)) { e2eDir = d; break; }
   return { unit, e2e, e2eDir, bdd };
 }
+// Is this a .NET app? Decides which E2E route gets recommended when no harness exists: the
+// from-scratch Playwright+playwright-bdd scaffold is Node-shaped, while a .NET app is better served
+// by forking the container-first Reqnroll+Playwright adoption framework. Shallow scan, fail-soft.
+function detectDotnet() {
+  const at = (dir) => { try { return fs.readdirSync(path.resolve(ROOT, dir)); } catch { return []; } };
+  const hit = (names) => names.some((n) => /\.(sln|csproj|fsproj)$/i.test(n));
+  if (hit(at("."))) return true;
+  for (const d of at(".")) {
+    if (d.startsWith(".") || d === "node_modules") continue;
+    try { if (!fs.statSync(path.resolve(ROOT, d)).isDirectory()) continue; } catch { continue; }
+    if (hit(at(d))) return true;
+  }
+  return false;
+}
+
 function detectCi() {
   const wf = listWorkflows();
   const deploy = wf.filter((f) => /deploy/i.test(f));
@@ -155,6 +170,11 @@ const setObs = (o, key, value, source) => {
   o[key] = { value, source };
 };
 const safeRef = (s) => (/^[\w./-]+$/.test(s) ? s : "");
+// List-shaped config fields are hand-edited constantly, and a scalar where a list belongs used to
+// crash rendering mid-write. Accept "a", "a,b", ["a"], null — always hand back an array.
+const asList = (v) => (Array.isArray(v) ? v.filter(Boolean)
+  : typeof v === "string" ? v.split(",").map((s) => s.trim()).filter(Boolean)
+  : v == null ? [] : [v]);
 
 function observeGit(o) {
   const head = safeRef((tryExec("git remote show origin").match(/HEAD branch:\s*(\S+)/) || [])[1] || "");
@@ -392,7 +412,11 @@ function defaultsFrom(d, prev) {
         bug: (it.issueTypes && it.issueTypes.bug) || "Bug",
         story: (it.issueTypes && it.issueTypes.story) || "Story",
         // Which issue types the autonomous IMPLEMENT loop may pick up. [] = loop disabled.
-        implement: (it.issueTypes && it.issueTypes.implement) || tp.implementTypes || [],
+        // Coerced to an array: a hand-edited stack.json routinely says "Story" rather than
+        // ["Story"], and every consumer (render, prompt, the IMPLEMENT loop filter) treats this
+        // as a list. Left as a string it crashed renderMd on re-run — AFTER stack.json had been
+        // written — leaving stack.json and stack.md silently out of sync.
+        implement: asList((it.issueTypes && it.issueTypes.implement) ?? tp.implementTypes ?? []),
       },
       states: it.states || tp.states || { todo: "To Do", inProgress: "In Progress", inReview: "In Review", verify: "", verified: "", done: "Done" },
       transitionIds: it.transitionIds || {},
@@ -479,7 +503,7 @@ async function prompt(cfg, conflicts) {
     cfg.issueTracker.myWorkQuery = await ask("  'My active work' query", cfg.issueTracker.myWorkQuery);
   }
   if (tool !== "none") {
-    const implAns = await ask("Issue types the autonomous IMPLEMENT loop may pick up (comma-sep; 'none' disables it)", (cfg.issueTracker.issueTypes.implement || []).join(",") || "none");
+    const implAns = await ask("Issue types the autonomous IMPLEMENT loop may pick up (comma-sep; 'none' disables it)", asList(cfg.issueTracker.issueTypes.implement).join(",") || "none");
     cfg.issueTracker.issueTypes.implement = /^none$/i.test(implAns) ? [] : implAns.split(",").map((s) => s.trim()).filter(Boolean);
   }
   cfg.vcs.integrationBranch = await ask("Integration branch", cfg.vcs.integrationBranch);
@@ -536,7 +560,7 @@ function renderMd(c) {
   L.push("- Ticket key prefix: " + (c.issueTracker.keyPrefix || DASH + " (e.g. GitHub #number)"));
   L.push("- \"My active work\" query: " + code(c.issueTracker.myWorkQuery));
   {
-    const impl = c.issueTracker.issueTypes.implement || [];
+    const impl = asList(c.issueTracker.issueTypes.implement);
     L.push("- Issue types: bug=" + code(c.issueTracker.issueTypes.bug) + ", story=" + code(c.issueTracker.issueTypes.story));
     L.push("- IMPLEMENT loop picks up: " + (impl.length ? impl.map(code).join(", ") : "none " + DASH + " IMPLEMENT loop disabled"));
   }
@@ -705,26 +729,40 @@ if (!fs.existsSync(claudeMdPath)) {
 // never pick up anything new. The failure is invisible for as long as nobody asks why a new ticket
 // sat untouched. Placeholders (<KEY>, CHECKPOINT-2, the documented PROJ-123 example) are fine; a
 // key matching this project's own prefix is not. See skills/shared/no-hardcoded-instructions.md.
+// A key is only dangerous where WORK IS SELECTED. Citing one as provenance for a lesson
+// ("earned on <KEY>", "this hid a blocker (<KEY>)") is the most valuable content these files
+// carry, and flagging it would make the warning noise people learn to scroll past - which is
+// how the real hit gets missed. So: skip lines driven by a ${...} token, flag lines that pick
+// work by name, and flag bare key lists.
 const KEY_RE = /\b[A-Z][A-Z0-9]{1,9}-[0-9]{1,5}\b/g;
 const ALLOWED_KEYS = /^(CHECKPOINT|DC|PR|KEY|PROJ|ENG|TEAM|ABC)-/;
+const SELECTS_WORK = /\b(work on|works on|working on|process|handle|pick up|start with|focus on|assigned to me|queue|todo list|tickets? to|issues? to|iterate over)\b/i;
+const KEY_LIST = /^[\s>\-*\d.]*(?:[A-Z][A-Z0-9]{1,9}-[0-9]{1,5}\s*[,;]\s*){2,}[A-Z][A-Z0-9]{1,9}-[0-9]{1,5}\s*\.?\s*$/;
 const scanned = [path.resolve(OUT, "stack.md"), claudeMdPath, ...(() => {
   try { return fs.readdirSync(path.resolve(OUT, "loops")).filter((f) => f.endsWith(".md")).map((f) => path.resolve(OUT, "loops", f)); } catch { return []; }
 })()];
 const frozen = [];
+let cited = 0;
 for (const file of scanned) {
   let body = ""; try { body = fs.readFileSync(file, "utf8"); } catch { continue; }
-  for (const hit of new Set(body.match(KEY_RE) || [])) {
-    if (ALLOWED_KEYS.test(hit)) continue;
+  body.split("\n").forEach((line, i) => {
+    const keys = [...new Set(line.match(KEY_RE) || [])].filter((k) => !ALLOWED_KEYS.test(k));
+    if (!keys.length) return;
+    // A ${...} token on the line means the instruction is query-driven; the key is an example.
+    if (line.includes("${")) return;
+    if (!SELECTS_WORK.test(line) && !KEY_LIST.test(line)) { cited += keys.length; return; }
     const prefix = (cfg.issueTracker && cfg.issueTracker.keyPrefix) || "";
-    // Flag anything that looks like a live key; a match on this project's own prefix is certain.
-    frozen.push({ file: path.relative(ROOT, file), hit, certain: !!prefix && hit.startsWith(prefix + "-") });
-  }
+    for (const hit of keys) {
+      frozen.push({ file: path.relative(ROOT, file), line: i + 1, hit, certain: !!prefix && hit.startsWith(prefix + "-") });
+    }
+  });
 }
 if (frozen.length) {
   console.log("\n  ! Possible frozen work list in generated files - loops would tick against a fixed set and silently never pick up new work:");
-  for (const f of frozen) console.log("      " + f.file + ": " + f.hit + (f.certain ? "  <- matches this project's key prefix" : ""));
+  for (const f of frozen) console.log("      " + f.file + ":" + f.line + ": " + f.hit + (f.certain ? "  <- matches this project's key prefix" : ""));
   console.log("    Replace concrete keys with the query/token (${issueTracker.myWorkQuery}, <KEY>). See skills/shared/no-hardcoded-instructions.md.");
 }
+if (cited) console.log("  (" + cited + " issue key(s) referenced as citations/lessons - left alone; those record why a rule exists.)");
 
 // No test harness detected -> point at the scaffolder (Playwright + Gherkin E2E, unit project).
 const noE2E = !cfg.testing.e2e.runner || cfg.testing.e2e.runner === "none";
@@ -732,5 +770,8 @@ const noUnit = !cfg.testing.unit.runner || cfg.testing.unit.runner === "none";
 if (noE2E || noUnit) {
   const which = noE2E && noUnit ? "no E2E or unit test project" : noE2E ? "no E2E project" : "no unit-test project";
   console.log("  " + which + " detected -> run the 'scaffold-test-projects' skill to bootstrap a Gherkin-driven Playwright E2E project + unit tests (page objects, web-element wrappers, hooks), then re-run onboard.");
+  if (noE2E && detectDotnet()) {
+    console.log("    This looks like a .NET app: prefer forking git@github.com:Lolibai/e2e-adoption.git (Reqnroll + Playwright, container-first) and running its /e2e-onboard - it is green against a bundled demo app before you customize it, so 'the harness works' and 'my app works' stay separately falsifiable.");
+  }
   console.log("  Until then every implementation must SAY so: the green gate (all units green + all e2e green) reports 'suggested-scaffold', never a silent skip. See skills/shared/green-gate.md.");
 }

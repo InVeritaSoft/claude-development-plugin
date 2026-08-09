@@ -71,7 +71,7 @@ Only now write the **minimal** root-cause fix that turns the RED tests green. Fo
 
 Before writing any UI markup:
 1. Invoke the `lego-philosophy` skill (the component-reuse convention: smart/dumb split + shared/design-system component inventory), then check the project's own inventory in the repo (e.g. CLAUDE.md)
-2. Ask: "Does a shared/design-system component (e.g. a `Resc*`-style primitive) already exist for this?" — if yes, reuse it
+2. Ask: "Does a shared/design-system component (e.g. a project-namespaced primitive such as `<Prefix>Button`) already exist for this?" — if yes, reuse it
 3. No raw element stacking (e.g. nested `<div>`s). Every repeating visual pattern is a named dumb component
 4. No inline styles or inline arrow functions in markup props, per the project's `${frontend.*}` conventions
 

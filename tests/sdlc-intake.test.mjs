@@ -62,6 +62,89 @@ describe("onboard writes the SDLC intake config", () => {
   });
 });
 
+// Real projects hand-edit stack.json, and `issueTypes.implement` is routinely written as the
+// scalar "Story" rather than ["Story"]. renderMd then threw on `impl.map` — but only AFTER
+// stack.json had been written, so a re-run left stack.json updated and stack.md stale, with the
+// two silently disagreeing about the config every skill reads. Both live portal repos hit this.
+describe("config fields survive being hand-edited to a scalar", () => {
+  const pkg = { name: "fixture", version: "1.0.0" };
+
+  test("a string issueTypes.implement is coerced, not fatal", () => {
+    const dir = tmpProject({ "package.json": pkg });
+    runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    const cfgPath = path.join(dir, ".claude/stack.json");
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+    cfg.issueTracker.issueTypes.implement = "Story";
+    fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+
+    const { status, stderr } = runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    assert.equal(status, 0, `onboard must not crash on a scalar list field: ${stderr}`);
+    assert.deepEqual(JSON.parse(fs.readFileSync(cfgPath, "utf8")).issueTracker.issueTypes.implement, ["Story"]);
+    assert.match(read(dir, ".claude/stack.md"), /IMPLEMENT loop picks up/, "stack.md must be rendered, not skipped");
+  });
+
+  test("a comma-separated string becomes a real list", () => {
+    const dir = tmpProject({ "package.json": pkg });
+    runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    const cfgPath = path.join(dir, ".claude/stack.json");
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+    cfg.issueTracker.issueTypes.implement = "Story, Task";
+    fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+    runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    assert.deepEqual(JSON.parse(fs.readFileSync(cfgPath, "utf8")).issueTracker.issueTypes.implement, ["Story", "Task"]);
+  });
+
+  test("an empty implement list still disables the loop", () => {
+    const dir = tmpProject({ "package.json": pkg });
+    runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    const cfgPath = path.join(dir, ".claude/stack.json");
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+    cfg.issueTracker.issueTypes.implement = [];
+    fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+    runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    assert.deepEqual(JSON.parse(fs.readFileSync(cfgPath, "utf8")).issueTracker.issueTypes.implement, []);
+    assert.match(read(dir, ".claude/stack.md"), /IMPLEMENT loop disabled/);
+  });
+});
+
+// The from-scratch scaffold is Node-shaped (Playwright + playwright-bdd). Recommending it to a
+// .NET team means telling them to stand up a toolchain nobody there maintains; the adoption
+// framework is the route that fits. Getting this backwards is silent — they just don't build a suite.
+describe("E2E route recommendation follows the app's stack", () => {
+  test("a .NET repo is pointed at the adoption framework", () => {
+    const dir = tmpProject({ "App.sln": "", "src/Api/Api.csproj": "<Project/>" });
+    const { stdout } = runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    assert.match(stdout, /e2e-adoption/, ".NET apps get the forkable container-first harness");
+    assert.match(stdout, /e2e-onboard/);
+  });
+
+  test("a Node repo is not", () => {
+    const dir = tmpProject({ "package.json": { name: "fixture", version: "1.0.0" } });
+    const { stdout } = runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    assert.match(stdout, /scaffold-test-projects/, "the gap is still reported");
+    assert.doesNotMatch(stdout, /e2e-adoption/, "a Node project should not be sent to a .NET solution");
+  });
+
+  test("a project that already has both harnesses gets no scaffold pitch at all", () => {
+    const dir = tmpProject({
+      "App.sln": "",
+      "package.json": { name: "fixture", version: "1.0.0", devDependencies: { vitest: "^1.0.0", "@playwright/test": "^1.40.0" } },
+    });
+    const { stdout } = runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    assert.doesNotMatch(stdout, /e2e-adoption/);
+    assert.doesNotMatch(stdout, /scaffold-test-projects/);
+  });
+});
+
 describe("the harvest corpus is never committable", () => {
   test("onboard gitignores .claude/sdlc/ alongside the loop state dir", () => {
     const dir = tmpProject({ "package.json": pkg() });

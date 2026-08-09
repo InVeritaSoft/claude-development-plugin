@@ -29,6 +29,37 @@ step files.
   "bootstrap gherkin", "we need a BDD harness".
 - `onboard` detected `${testing.e2e.runner}` / `${testing.unit.runner}` as `none` and the user wants them created.
 
+## Fork the adoption framework before hand-rolling anything
+
+For a **.NET** application — and for any project that wants a container-first suite it can adopt
+rather than assemble — start from the E2E Adoption Framework instead of scaffolding from zero:
+
+```bash
+git clone git@github.com:Lolibai/e2e-adoption.git
+cd e2e-adoption && ./e2e.sh run --rm e2e dotnet test    # green on arrival against a bundled demo app
+/e2e-onboard                                            # recon → council → materialize around YOUR app
+```
+
+It is Reqnroll (Gherkin) + Playwright, DDD-layered, and container-first: no host .NET SDK, no host
+Playwright browsers, no host Node — the pinned versions live in the image. `/e2e-onboard` reconnoiters
+the target app with a set of recon subagents, deliberates in a council (architecture, safety, flake),
+then materializes the framework around the real app and verifies it. Its harness drives Claude through
+the **Claude Code subscription**, not a metered API key.
+
+**Choose it when:** the app under test is .NET; or you want a suite that is green before it is
+customized (a bundled demo app means "the harness works" and "my app works" are separately
+falsifiable); or several projects need onboarding from one control plane.
+
+**Choose the from-scratch scaffold below when:** the project is Node/TypeScript and already has a
+package manager, CI, and conventions the suite must match — forking a .NET solution into it would
+add a toolchain nobody there maintains.
+
+Either way the non-negotiables below still hold: Gherkin, page objects, typed element wrappers,
+lifecycle in hooks. The adoption framework already implements all four — that is the point of
+preferring it. What it does **not** do is decide for you: run its `doctor` preflight and read its
+`e2e.profile.yaml` before adopting, so the harness's assumptions about auth, data, and environments
+are ones this project can actually meet.
+
 ## Non-negotiables
 
 1. **Gherkin mandatory.** Every E2E behavior is expressed as a `.feature` scenario; steps bind to page objects, never to raw selectors inline.

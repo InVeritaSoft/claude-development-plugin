@@ -61,7 +61,7 @@ machine-readable `.claude/stack.json`) that the target project generates — the
 repo. To understand any file here, read it alongside two references:
 
 - **`CONVENTIONS.md`** — the token → config mapping. Every file replaces a concrete tool
-  (e.g. "Jira `RESC-123`") with a `${issueTracker.*}`-style config reference. When editing skills,
+  (e.g. "Jira `PROJ-123`") with a `${issueTracker.*}`-style config reference. When editing skills,
   keep this contract: *use config values, never assume a specific tool; if a capability is `none`,
   skip that step — don't ask, don't invent.*
 - **`MANIFEST.md`** — the loop roster (FIX / VERIFY / STORY-VERIFY / PR-REVIEW / DEPLOY-FIX /

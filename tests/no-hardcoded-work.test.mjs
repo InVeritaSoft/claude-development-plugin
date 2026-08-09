@@ -22,7 +22,7 @@ const KEY_RE = /\b[A-Z][A-Z0-9]{1,9}-[0-9]{1,5}\b/g;
 
 // Placeholders and structural names, not work items: <KEY> stand-ins, checkpoint labels, and the
 // documented example prefixes used throughout CONVENTIONS.md.
-const PLACEHOLDER = /^(CHECKPOINT|DC|PR|KEY|PROJ|ENG|TEAM|ABC|RESC)-/;
+const PLACEHOLDER = /^(CHECKPOINT|DC|PR|KEY|PROJ|ENG|TEAM|ABC)-/;
 
 const trackedLoopStack = execFileSync("git", ["ls-files", "plugins/loop-stack"], { cwd: REPO_ROOT, encoding: "utf8" })
   .split("\n")
@@ -30,7 +30,8 @@ const trackedLoopStack = execFileSync("git", ["ls-files", "plugins/loop-stack"],
 
 describe("shipped loop-stack files carry no real work items", () => {
   // loops/*.md are copied verbatim into every project that onboards. A real key in one of them is
-  // a key in everyone's project — the exact leak that shipped as `RESC-1234` in daily-report.md.
+  // a key in everyone's project — which is exactly what shipped: one client's live key sat in
+  // daily-report.md and landed in every project that onboarded.
   test("no materialized loop spec names a concrete issue key", () => {
     const offenders = [];
     for (const rel of trackedLoopStack.filter((f) => f.includes("/loops/"))) {
@@ -78,6 +79,29 @@ describe("onboard's frozen-work guard", () => {
     assert.match(stdout, /ACME-141/, "it must name the offending key");
     assert.match(stdout, /matches this project's key prefix/, "a prefix match is a certain hit, not a maybe");
     assert.match(stdout, /no-hardcoded-instructions\.md/, "and point at the contract");
+  });
+
+  // Citing a key as provenance for a lesson ("earned on ACME-50", "this hid a blocker (ACME-297)")
+  // is the most valuable content a stack.md carries — it records WHY a rule exists. Flagging it
+  // turns the guard into noise people learn to scroll past, which is precisely how the one real
+  // hit gets missed. Two real onboarded projects had 14 such citations and zero frozen lists.
+  test("does not flag issue keys cited as lessons or provenance", () => {
+    const dir = tmpProject({ "package.json": pkg });
+    runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    const cfgPath = path.join(dir, ".claude/stack.json");
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+    cfg.issueTracker.keyPrefix = "ACME";
+    cfg.recoveryNotes = [
+      "Earned on ACME-50: its ACs contradicted ACME-294, and legacy was the arbiter.",
+      "Never put expectOne inside a try/catch - it hid a blocker (ACME-297); 112 removed under ACME-326.",
+    ].join("\n");
+    fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+
+    const { stdout } = runScript(ONBOARD, { cwd: dir, args: ["--non-interactive"] });
+
+    assert.doesNotMatch(stdout, /frozen work list/i, "citations are not work lists");
+    assert.match(stdout, /referenced as citations\/lessons/, "they are counted, so the scan is visibly not blind");
   });
 
   test("stays quiet on a clean project", () => {
