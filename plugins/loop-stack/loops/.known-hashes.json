@@ -1,0 +1,55 @@
+{
+  "note": "SHA-256 of every shipped version of each loop spec. A project copy matching one of these is unmodified and safe to refresh; anything else has local edits and is never overwritten. Regenerate with scripts/gen-spec-hashes.mjs.",
+  "files": {
+    "daily-report.md": [
+      "0955cc30c70a6ac680506b139a8fd975c9f0e41d8d2c34777fd1f4a672fdb409",
+      "11b0bcb5dca1d1c8c38db4edb063f2b5772c433c004f5d13f4067c4ffd0c5862",
+      "61ea389e144a4a682be4ec30fc6e8dc9ca5aa7092ff5da2a5bd6cda9116eb022",
+      "6fbf31be59bb1a4633085c4f2c4dcca58b4095ae513e1ba2e3b1eaeb27672d55",
+      "90f210b411f3182ce069ccf501d2e9ae9efb6c277540d84276ee53d47985a7ef",
+      "a5ed814fadcc1038adf5da84cfdd22737e60d9a0e301cef199073c0fab9780d1",
+      "bc41d33ae0d41e8dbeb5e1ae948a0acd09c5fc73ef4fa0af09bed71b8747ca25",
+      "cb72f496464205d416255221f6ab382c6983b06c85c35660efffddc9926133dc"
+    ],
+    "deploy-failure-fix.md": [
+      "03873b58d391834e730fc17827289f6c3e3d2d06a6fc1066d464c76180b570b8",
+      "3f20907cf77e6805b3de439e9334f967916eff1f12b533e052541f66d4781c9e",
+      "e932be2cab732cbc6e31c323fe5f0a8c170c9824d1e76d546f1301d261deef05",
+      "f88f4426a259cba1a8d964bdaf427a88fefe604613a67615c6b6d08cbadc33d3"
+    ],
+    "e2e-sweep.md": [
+      "b5b5a444cdd5a919e3c736856a036fc68b44de98cf9336ac63e0935257bd3107"
+    ],
+    "implement.md": [
+      "88b1fdd3a8716b7e1347e64b039b051ed87e6b6ca010c597921e6df1c0615c59"
+    ],
+    "my-bugs-in-sprint-devfix.md": [
+      "072729967f92677daf44b0b18b9d2e8b7358ddf9dcf0c428f8cd5bd3d1ee6c9a",
+      "4e9cd9618b876aa1d53cd4f218f1b54917c51c843e540b6187f3aeb72a75d8ed",
+      "55063d25349d92f1f9daac3d4bf3dab5d6ea8bf38514c9681724514f04da2a06",
+      "86854369d6151ecfaddd08a2d932fe6d97d1c7a517143210d57d944a18ce2765",
+      "94d99ef5d8ba09d4841bb990fec78972fd5b7c59fe9f8b1651901723288de217",
+      "9db9b9932ef8e65385ba3b130efb5ad08be03d33d8c61cf83c65d6fa4e932208",
+      "c9777e2ed04a87899fc416c76dff5b3ca961da2a81c128ad71bfa3697c3d61c3",
+      "e57f44f0b9a2365e5f5c8d50af9512a4b18f0c701c8581f1344345f8a30cd96c"
+    ],
+    "pr-review.md": [
+      "54b869f0d4f7e3aaf96e9e6683af5199cf2384e1aa89cf0685865f76110024e2",
+      "9ace04a4eb4dcde9e733018f903491df9840dee0706c9bedbfce57c54037db16",
+      "9fc980b06da9747a01abed61c844ede712f1982241036f70798d92f67824e244",
+      "f44be7524030091dbfe74c4a020936e5cb8aa345491e81c39d5aafa3d8866ecc"
+    ],
+    "pr-shepherd.md": [
+      "0fbd63da0d499208be6a0d07eef5eff27f88dcce1e38e92931b3ca8888d78340",
+      "4b6a3e5a5c718b2399002550883f08d0196ff0b39ef9ce1bb82187308e42129e",
+      "973811d9ced2298c9ea63d381dcde5568fdd58c15044c571c10e3ffe106511c6",
+      "cb96fd3f475e0754ea63b5599b32fd748bd739424a814f531ad5d5d54029800c",
+      "d4ae6af5afe41b676355d8e2bee06dd809eca02200977e56f383fee280104a99",
+      "dc6d8dbd8105cbf838f905ead339b4694fea066c7b66db59d64e9d2b7c9824c8"
+    ],
+    "sync-integration.md": [
+      "5c86fd2a18605b08c89d2557bac9d37d8ef19c0b6c0d9ca155a3e8dff423fc17",
+      "9ad423cc103ec19499505c5fe13f7902a82d14a1986de17a0bc801e59798094b"
+    ]
+  }
+}

@@ -51,6 +51,11 @@ Scope a run with `--plugin <name>` or `--remote <name>`.
 
 ### What it refuses to do
 
+- Release when `plugins/loop-stack/loops/.known-hashes.json` is stale. The script regenerates it
+  (`scripts/gen-spec-hashes.mjs`) and diffs the result. That table is how `onboard` tells "this spec
+  is unmodified, safe to refresh" from "the user edited this, leave it alone" — a release that
+  changes a loop spec without regenerating it ships a version no project can recognize, so that
+  spec silently stops receiving fixes from then on.
 - Release from a dirty working tree.
 - Release from a branch other than `main`.
 - Release when `HEAD` differs from any target remote's `main` (push first — the tag must point at a

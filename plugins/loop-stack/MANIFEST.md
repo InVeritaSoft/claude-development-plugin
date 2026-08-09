@@ -9,6 +9,7 @@ and every file reads from it. See `CONVENTIONS.md` for the token → config mapp
 
 1. Install it: `/plugin marketplace add Lolibai/claude-development-plugin` then `/plugin install loop-stack@dev-tools` — or copy this directory's `skills/`, `agents/`, `commands/`, `loops/` into the project's `.claude/`.
 2. Run **`onboard`** — detects the stack, writes `.claude/stack.md` (issue tracker, branch model, package manager, frameworks, backend/DB, edge, tests, CI/deploy, design, reporting), creates the gitignored `.claude/loops/state/` dir, and materializes `loops/*.md` into `.claude/loops/` (cron prompts reference them there).
+   Re-running is safe and now **self-healing**: a materialized spec you have not edited is refreshed to the current version (so upstream fixes reach projects that onboarded long ago), while any spec you *have* edited is left untouched and reported. Provenance comes from `loops/.known-hashes.json` — every version this stack has ever shipped.
 3. Run **`launch-loop-stack`** — registers the session crons, now driven entirely by your config.
 
 Anything in the config set to `none`/empty is skipped — no deploy gate if you have no CI, no tracker transitions if you use GitHub Issues, etc. **Testing is the one exception:** every implementation ends with the full unit suite and the full E2E suite green, and a missing harness is surfaced with an offer to build it (Gherkin + page objects + typed web-element wrappers + hooks) rather than silently skipped — see `skills/shared/green-gate.md`.

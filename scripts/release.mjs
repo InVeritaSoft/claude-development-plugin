@@ -43,6 +43,16 @@ const die = (msg) => { console.error(`error: ${msg}`); process.exit(1); };
 
 if (run('git', 'status', '--porcelain')) die('working tree is dirty — commit or stash first.');
 
+// The loop-spec hash table is what lets onboard tell "unmodified, safe to refresh" from "the user
+// edited this". A release that changes a spec without regenerating it ships a version no project
+// can recognize, so that spec silently stops receiving fixes forever after. Regenerate and require
+// the result to be identical to what is committed.
+const genScript = fileURLToPath(new URL('./gen-spec-hashes.mjs', import.meta.url));
+try { run(process.execPath, genScript); } catch (err) { die(`could not regenerate loops/.known-hashes.json: ${err.message}`); }
+if (run('git', 'status', '--porcelain', 'plugins/loop-stack/loops/.known-hashes.json')) {
+  die('loops/.known-hashes.json is stale — run `node scripts/gen-spec-hashes.mjs` and commit the result.');
+}
+
 const branch = run('git', 'rev-parse', '--abbrev-ref', 'HEAD');
 if (branch !== 'main') die(`on branch "${branch}" — releases are cut from main.`);
 
