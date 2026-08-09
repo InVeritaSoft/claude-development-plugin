@@ -1,0 +1,20 @@
+{
+  "name": "shared-database-discipline",
+  "version": "1.0.0",
+  "description": "Rules for running one shared Postgres/MongoDB behind many projects instead of a database container per repo: per-environment isolation enforced with REVOKE rather than convention, a three-role credential model where apps never run as owner, connection-string formats that silently break (Npgsql rejects postgresql:// URIs; semicolon values must not be shell-sourced), and self-hosted-runner deploy safety.",
+  "author": {
+    "name": "Mykhailo"
+  },
+  "keywords": [
+    "database",
+    "postgres",
+    "mongodb",
+    "connection-string",
+    "migrations",
+    "self-hosted-runner",
+    "docker-compose",
+    "devops",
+    "homelab"
+  ],
+  "license": "MIT"
+}

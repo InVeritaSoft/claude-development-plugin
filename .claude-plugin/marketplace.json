@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "dev-tools",
-  "version": "1.5.0",
-  "description": "Development tooling for Claude Code: the autonomous dev loop stack, CSS/design-drift auditing, and mobile platform (iOS HIG + Material 3) guidelines.",
+  "version": "1.6.0",
+  "description": "Development tooling for Claude Code: the autonomous dev loop stack, CSS/design-drift auditing, mobile platform (iOS HIG + Material 3) guidelines, and shared-database discipline for one-instance-many-projects setups.",
   "owner": {
     "name": "Mykhailo"
   },
@@ -33,6 +33,15 @@
       "author": { "name": "Mykhailo" },
       "category": "development",
       "keywords": ["mobile", "ios", "android", "hig", "material-design", "react-native", "expo", "ui", "accessibility"]
+    },
+    {
+      "name": "shared-database-discipline",
+      "source": "./plugins/shared-database-discipline",
+      "description": "Rules for running one shared Postgres/MongoDB behind many projects instead of a database container per repo: per-environment isolation enforced with REVOKE rather than convention, a three-role credential model where apps never run as owner, connection-string formats that silently break (Npgsql rejects postgresql:// URIs; semicolon values must not be shell-sourced), and self-hosted-runner deploy safety.",
+      "version": "1.0.0",
+      "author": { "name": "Mykhailo" },
+      "category": "development",
+      "keywords": ["database", "postgres", "mongodb", "connection-string", "migrations", "self-hosted-runner", "docker-compose", "devops", "homelab"]
     }
   ]
 }

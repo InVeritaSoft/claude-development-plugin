@@ -1,6 +1,6 @@
 # dev-tools — Claude Code plugin marketplace
 
-A Claude Code plugin marketplace with three plugins: **loop-stack** (a universal, config-driven autonomous dev loop stack), **css-drift-auditor** (a framework-agnostic pipeline for auditing and normalizing CSS/design drift), and **mobile-platform-guidelines** (iOS HIG + Material 3 rules for building native-feeling mobile UI).
+A Claude Code plugin marketplace with four plugins: **loop-stack** (a universal, config-driven autonomous dev loop stack), **css-drift-auditor** (a framework-agnostic pipeline for auditing and normalizing CSS/design drift), **mobile-platform-guidelines** (iOS HIG + Material 3 rules for building native-feeling mobile UI), and **shared-database-discipline** (rules for one shared Postgres/MongoDB behind many projects).
 
 ## Install
 
@@ -12,6 +12,7 @@ A Claude Code plugin marketplace with three plugins: **loop-stack** (a universal
 /plugin install loop-stack@dev-tools
 /plugin install css-drift-auditor@dev-tools
 /plugin install mobile-platform-guidelines@dev-tools
+/plugin install shared-database-discipline@dev-tools
 ```
 
 Already installed? `/plugin install` on an existing plugin is a no-op, and third-party marketplaces
@@ -28,7 +29,8 @@ There is no `/plugin update` slash command — updating happens via the shell co
 `/plugin` → **Marketplaces** tab (where you can also flip on auto-update for `dev-tools`).
 
 Current versions: **loop-stack 1.6.0**,
-**css-drift-auditor 0.4.2**, **mobile-platform-guidelines 1.0.0**. Loop specs are materialized into
+**css-drift-auditor 0.4.2**, **mobile-platform-guidelines 1.0.0**,
+**shared-database-discipline 1.0.0**. Loop specs are materialized into
 a project by the `onboard` skill, so after updating, **re-run `onboard`** in each project to pick up
 new loops — it never overwrites a spec you've edited.
 
@@ -61,15 +63,20 @@ Per-project prerequisites (Claude Code prompts before installing any of them):
 
 `mobile-platform-guidelines` ([plugin readme](./plugins/mobile-platform-guidelines/README.md)) is a skill that packages Apple's **Human Interface Guidelines** and Google's **Material Design 3** into an implementation-oriented, pattern-first workflow. Before any mobile screen, component, navigation flow, or permission prompt is written, it audits the proposed design against the relevant platform reference and lists violations — touch targets, safe areas, back-navigation, permission timing, dark mode, accessibility — so UI feels native on the platform it ships to. Works for React Native / Expo / Flutter / native. No per-project prerequisites.
 
+## shared-database-discipline
+
+`shared-database-discipline` ([plugin readme](./plugins/shared-database-discipline/README.md)) is a skill for the setup where **one** Postgres and **one** MongoDB serve every project on a host or network, rather than each repository shipping its own database container — the common shape for homelabs, small teams and single-server deployments. It triggers before a database is added to a project, before a compose file grows a `postgres:` service, when `DATABASE_URL` / `MONGO_URI` / `ConnectionStrings` are wired up, and when a deploy runs on a self-hosted runner. It covers one database per project **per environment** isolated with `REVOKE CONNECT` rather than by agreement, the three-role model (`_owner` migrates, `_app` runs, `_ro` reads) so an injection cannot `DROP TABLE`, the connection-string formats that silently break (Npgsql rejects `postgresql://` URIs; semicolon-bearing values are destroyed by `source`), and self-hosted-runner safety — starting with never triggering on `pull_request`, which would make a fork's PR arbitrary code execution on your network. Tool-agnostic: host names, ports and the provisioning CLI are placeholders.
+
 ## Repository layout
 
 ```
-.claude-plugin/marketplace.json    # marketplace registry (loop-stack + css-drift-auditor + mobile-platform-guidelines)
+.claude-plugin/marketplace.json    # marketplace registry (all four plugins)
 plugins/loop-stack/                # the autonomous loop stack plugin
 plugins/loop-stack/skills/onboard/      # onboard.mjs → writes .claude/stack.md + materializes .claude/loops/
 plugins/loop-stack/{MANIFEST,CONVENTIONS}.md  # what the stack contains + how it stays universal
 plugins/css-drift-auditor/         # the CSS-drift plugin
 plugins/mobile-platform-guidelines/  # iOS HIG + Material 3 mobile UI skill
+plugins/shared-database-discipline/  # one shared Postgres/Mongo behind many projects
 tests/                             # unit suite (node:test, zero dependencies)
 .github/workflows/validate.yml     # CI: runs the unit suite
 ```
