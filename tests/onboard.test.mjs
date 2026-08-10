@@ -27,6 +27,7 @@ describe("onboard --detect-only", () => {
 
     assert.equal(exists(dir, ".claude"), false, "--detect-only must not write config");
     assert.equal(exists(dir, "CLAUDE.md"), false, "--detect-only must not drop CLAUDE.md");
+    assert.equal(exists(dir, "AGENTS.md"), false, "--detect-only must not drop AGENTS.md");
   });
 });
 
@@ -80,6 +81,21 @@ describe("onboard --non-interactive", () => {
     const owned = tmpProject({ "package.json": pkg(), "CLAUDE.md": "# mine\n" });
     runScript(ONBOARD, { cwd: owned, args: ["--non-interactive"] });
     assert.equal(read(owned, "CLAUDE.md"), "# mine\n");
+  });
+
+  test("drops an AGENTS.md that points at CLAUDE.md rather than copying it", () => {
+    const fresh = tmpProject({ "package.json": pkg() });
+    runScript(ONBOARD, { cwd: fresh, args: ["--non-interactive"] });
+
+    const agents = read(fresh, "AGENTS.md");
+    assert.match(agents, /CLAUDE\.md/, "AGENTS.md must route agents to CLAUDE.md");
+    // A pointer, not a second copy: duplicated instructions drift, and the stale copy still reads
+    // as authoritative. If this ever fails, someone started copying the template into both files.
+    assert.doesNotMatch(agents, /Always-apply invariants/);
+
+    const owned = tmpProject({ "package.json": pkg(), "AGENTS.md": "# mine\n" });
+    runScript(ONBOARD, { cwd: owned, args: ["--non-interactive"] });
+    assert.equal(read(owned, "AGENTS.md"), "# mine\n");
   });
 
   test("re-running preserves values already in stack.json", () => {

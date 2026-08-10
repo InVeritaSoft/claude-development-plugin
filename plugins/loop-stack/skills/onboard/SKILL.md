@@ -53,6 +53,10 @@ Every other skill/agent/command/loop reads `.claude/stack.md` for these values. 
   `CLAUDE.template.md` as `./CLAUDE.md` (the entry point — invariants + skills map, all specifics
   read from `.claude/stack.md`). An existing `CLAUDE.md` is left untouched; merge from
   `skills/onboard/CLAUDE.template.md` if desired.
+- Onboarding also drops an `./AGENTS.md` **pointer** (never a copy) so agents on other harnesses
+  read the same instructions: it routes to `CLAUDE.md` + `.claude/stack.md`. Duplicating the
+  content would drift, and the stale copy would still read as authoritative. An existing
+  `AGENTS.md` is left untouched — check that it points at `CLAUDE.md`.
 - Point them at `launch-loop-stack` to start the autonomous loops, now driven by their config.
 - **No test harness?** If `${testing.e2e.runner}` or `${testing.unit.runner}` came out `none` (the project has
   no E2E/unit project yet), point the user at **`scaffold-test-projects`** to bootstrap a Gherkin-driven

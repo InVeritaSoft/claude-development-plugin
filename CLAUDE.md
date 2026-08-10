@@ -70,7 +70,8 @@ repo. To understand any file here, read it alongside two references:
 Key flows:
 
 - **`skills/onboard/onboard.mjs`** is the linchpin: it detects the stack, then writes `stack.md` /
-  `stack.json`, drops `CLAUDE.template.md` as the project's root `CLAUDE.md`, and materializes
+  `stack.json`, drops `CLAUDE.template.md` as the project's root `CLAUDE.md` (plus an `AGENTS.md` **pointer** to it
+  — never a second copy, so the two can't drift), and materializes
   `loops/*.md` into the target's `.claude/loops/`. It is **tracker-adaptive** — Jira, GitHub Issues,
   and Linear are co-equal first-class paths (see the `TRACKER` presets in the script and the
   tracker-adaptive table in `CONVENTIONS.md`). A "team" = one repo = one `stack.md`.
