@@ -29,6 +29,11 @@ Anything in the config set to `none`/empty is skipped — no deploy gate if you 
 | E2E-SWEEP | `11,31,51 * * * *` | loops/e2e-sweep.md (small time-boxed scenario batch per tick → rolling suite-health report; skipped if no e2e runner) |
 | DAILY-REPORT | `59 16 * * 1-5` | loops/daily-report.md (read-only standup summary + parked-item escalation) |
 
+Scope boundary: the stack helps a developer resolve tickets **up to the handoff to QC** and no further.
+FIX / IMPLEMENT take a ticket to `${states.verify}`; VERIFY / STORY-VERIFY end at `${states.verified}`
+with a handoff comment and the ticket reassigned per `${issueTracker.handoffAssignee}`. Nothing in the
+stack moves a ticket to `${states.done}` or closes it — that belongs to QC.
+
 Scoping invariant: work is selected by `${issueTracker.myWorkQuery}` — user-scoped + the active iteration, never the whole backlog. Each tick does one action, gates strictly on green tests (+ deploy when configured), and never overrides branch protection.
 
 ## SDLC intake pipeline (`commands/sdlc.md`) — upstream of the loops

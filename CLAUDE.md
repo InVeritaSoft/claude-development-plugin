@@ -109,6 +109,12 @@ Key flows:
   and Linear are co-equal first-class paths (see the `TRACKER` presets in the script and the
   tracker-adaptive table in `CONVENTIONS.md`). A "team" = one repo = one `stack.md`.
 - **`launch-loop-stack` / `stop-loop-stack`** skills register/tear down the session crons.
+- **The stack's scope ends at the QC handoff.** Its job is to help a developer resolve tickets
+  *up to* handing them to QC: FIX / IMPLEMENT drive a ticket to `${states.verify}`, and VERIFY /
+  STORY-VERIFY finish at `${states.verified}` with a handoff comment and the ticket reassigned per
+  `${issueTracker.handoffAssignee}`. **No loop, command, or agent may move a ticket to
+  `${states.done}` or close it** — that is QC's call. Keep it that way when adding a loop or skill:
+  a new flow either ends at the handoff or stops short of it, never past it.
 - Path split for coding work: **`devfix`** handles bug/ticket fixes; **`implement`** (command) handles
   non-bug feature work; **`implement-designs`** must audit *every* design node and read *whole*
   Confluence pages (no subsets/excerpts).

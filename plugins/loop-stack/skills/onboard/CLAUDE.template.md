@@ -113,6 +113,12 @@ only when `.claude/stack.md` declares that capability — otherwise they're a no
     - Skills carry only the *instruction* to query/store — the lesson content stays in the store so
       there is one place to update it.
 
+## Where the loop stack stops
+
+The loop stack helps a developer resolve tickets **up to the handoff to QC**, not past it. A ticket
+ends at `states.verified` with a handoff comment and reassignment per `issueTracker.handoffAssignee`
+(both in `.claude/stack.md`). Never move a ticket to `states.done` or close it — that is QC's call.
+
 ## Response format
 
 **Always end every reply with a remaining-work line.** The literal last line of each response is

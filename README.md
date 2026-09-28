@@ -28,7 +28,7 @@ claude plugin update loop-stack@dev-tools     # shell: update the installed plug
 There is no `/plugin update` slash command — updating happens via the shell command above, or through
 `/plugin` → **Marketplaces** tab (where you can also flip on auto-update for `dev-tools`).
 
-Current versions: **loop-stack 1.6.0**,
+Current versions: **loop-stack 1.9.1**,
 **css-drift-auditor 0.4.2**, **mobile-platform-guidelines 1.0.0**,
 **shared-database-discipline 1.0.0**. Loop specs are materialized into
 a project by the `onboard` skill, so after updating, **re-run `onboard`** in each project to pick up
