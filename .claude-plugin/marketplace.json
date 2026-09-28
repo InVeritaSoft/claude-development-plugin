@@ -93,6 +93,27 @@
         "devops",
         "homelab"
       ]
+    },
+    {
+      "name": "lego-philosophy",
+      "source": "./plugins/lego-philosophy",
+      "description": "The LEGO philosophy for frontend UI architecture in React, Vue, Angular, Svelte and similar: build every screen from named, reusable components (dumb/smart split, per-project component inventory), never from anonymous div stacks. Standalone, config-free.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Mike Shevchenko"
+      },
+      "category": "development",
+      "keywords": [
+        "frontend",
+        "ui",
+        "components",
+        "react",
+        "vue",
+        "angular",
+        "svelte",
+        "architecture",
+        "smart-dumb"
+      ]
     }
   ]
 }
